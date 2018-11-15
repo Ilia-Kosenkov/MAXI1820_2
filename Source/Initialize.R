@@ -21,7 +21,7 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 .Initialize <- function() {
-
+    library(RColorBrewer)
     library(scales)
     library(foreach)
     library(gridExtra)
@@ -33,6 +33,11 @@
 
     library(RLibs)
     library(Dipol2Red)
+
+    # experimental parallel
+    library(multidplyr)
+    library(foreach)
+    library(doSNOW)
 
     file.path("Source") %>%
         dir(pattern = ".R", full.names = TRUE, recursive = TRUE) %>%
@@ -51,21 +56,53 @@
         map(~map(.x, ~ (read_csv(file.path(path, .x), col_types = cols())))) %>%
         map(reduce, bind_rows) %>%
         map(set_names, c("JD", "Ref", "Obs")) %>%
+        map(arrange, JD) %>%
+        map(mutate, MJD = JD - 2400000.5) %>%
         set_names(Bands$Band)
 
 
+}
+
+.SetupCluster <- function() {
+    library(parallel)
+    library(doSNOW)
+
+    cl <- Cluster$new(max(detectCores() - 2, 2))
+
+    cl$Register()
+
+    return(cl)
+}
+
+.InitCluster <- function(cluster = .Cluster) {
+    clusterCall(cluster$ClusterDesc, function() {
+        library(tidyverse)
+        library(magrittr)
+        library(RLibs)
+        library(Dipol2Red)
+    })
+
+    invisible(NULL)
 }
 
 makeActiveBinding("ShouldRun",
                   function() rlang::`%||%`(getOption(".IsInitialized"), FALSE),
                   .GlobalEnv)
 
-
+makeActiveBinding("RunParallel",
+                  function()
+                      rlang::`%||%`(getOption(".RunParallel"), FALSE),
+                  .GlobalEnv)
 
 if (!ShouldRun) {
     .Initialize()
-
     assign("data_1", .ReadData_1(), .GlobalEnv)
 
     options(.IsInitialized = TRUE)
+}
+if (ShouldRun &&
+        (getOption(".SetParallel") %||% FALSE)) {
+    assign(".Cluster", .SetupCluster(), .GlobalEnv)
+    .InitCluster()
+    options(.SetParallel = FALSE)
 }
