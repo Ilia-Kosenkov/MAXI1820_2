@@ -86,7 +86,7 @@
 }
 
 makeActiveBinding("ShouldRun",
-                  function() rlang::`%||%`(getOption(".IsInitialized"), FALSE),
+                  function() getOption(".IsInitialized", FALSE),
                   .GlobalEnv)
 
 makeActiveBinding("RunParallel",
@@ -94,10 +94,21 @@ makeActiveBinding("RunParallel",
                       rlang::`%||%`(getOption(".RunParallel"), FALSE),
                   .GlobalEnv)
 
+
+`%exec%` <- function(obj, ex) {
+
+    if (RunParallel)
+        e <- foreach:::getDoPar()
+    else
+        e <- foreach:::getDoSeq()
+
+    e$fun(obj, substitute(ex), parent.frame(), e$data)
+}
+
+
 if (!ShouldRun) {
     .Initialize()
     assign("data_1", .ReadData_1(), .GlobalEnv)
-
     options(.IsInitialized = TRUE)
 }
 if (ShouldRun &&
