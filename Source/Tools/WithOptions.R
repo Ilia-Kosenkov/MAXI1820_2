@@ -20,7 +20,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-WithOptions <- function(..., work) {
+WithOptions <- function(work, ...) {
     .dots <- enquos(...) %>% map(quo_squash)
     nms <- names(.dots) %>% syms
     TempOptions(!!!.dots)
