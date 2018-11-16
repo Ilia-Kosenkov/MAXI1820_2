@@ -21,5 +21,5 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Nest <- function(data, ..., .key = "data") {
-    select(nest(data, ..., .key = !!.key), data, everything())
+    select(nest(data, ..., .key = !!.key), !!.key, everything())
 }
