@@ -27,18 +27,14 @@ AverageBy <- function(data, bandInfo, by = 1) {
             MJD_ID__ = as.integer(floor(MJD / by))) %>%
         GroupBy(MJD_ID__) %>%
         DoWith(slice(., seq_len(8 * n() %/% 8))) %>%
-        DoWith(Sigma_2(., bandInfo), .export = list(bandInfo = bandInfo)) %>%
+        DoWith(
+            mutate(Sigma_2(., bandInfo), MJD = mean(.$MJD)),
+            .export = list(bandInfo = bandInfo)) %>%
         Ungroup() %>%
-        arrange(MJD_ID__)
+        arrange(MJD_ID__) %>%
+        select(MJD, JD, everything(), -MJD_ID__)
 }
 
 if (ShouldRun) {
-    (AverageBy(data_1$B, Bands %>% filter(Band == "R")) %>%
-        ggplot(aes(x = JD, y = P, ymin = P - SG, ymax = P + SG)) +
-            DefaultTheme() +
-            geom_linerange() +
-            geom_point(aes(fill = Ratio), shape = 21, size = 3) +
-            geom_line() +
-            scale_fill_gradientn(colours = rev(brewer.pal(11, "Spectral")))) %>%
-        print
+    AverageBy(data_1$B, Bands %>% filter(Band == "R")) %>% print
 }
