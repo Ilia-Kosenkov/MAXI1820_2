@@ -24,8 +24,8 @@ WithOptions <- function(..., work) {
     .dots <- enquos(...) %>% map(quo_squash)
     nms <- names(.dots) %>% syms
     TempOptions(!!!.dots)
-    result <- eval_tidy(work)
-    TempOptions(!!!nms)
+    result <- tryCatch(eval_tidy(work),
+                       finally = TempOptions(!!!nms))
 
     return(result)
 }
