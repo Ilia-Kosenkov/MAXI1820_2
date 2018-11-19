@@ -20,21 +20,40 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-AverageBy <- function(data, bandInfo, by = 1) {
+AverageBy <- function(data, bandInfo, by = 1, by_obs = NA) {
 
-    data %>%
-        mutate(
-            MJD_ID__ = as.integer(floor(MJD / by))) %>%
-        GroupBy(MJD_ID__) %>%
-        DoWith(slice(., seq_len(8 * n() %/% 8))) %>%
-        DoWith(
-            mutate(Sigma_2(., bandInfo), MJD = mean(.$MJD)),
-            .export = list(bandInfo = bandInfo)) %>%
-        Ungroup() %>%
-        arrange(MJD_ID__) %>%
-        select(MJD, JD, everything(), -MJD_ID__)
+    if (!all(is.na(by_obs)))
+        selector <- function(col, rn) (rn - 1) %/% by_obs + 1
+    else
+        selector <- function(col, ...) as.integer(floor(col / by))
+
+    ftrs <- data %>%
+        mutate(MJD_ID__ = selector(MJD, row_number())) %>%
+        SplitByGroups(MJD_ID__) %>%
+        future_map(~Sigma_2(.x, bandInfo)) %>%
+        bind_rows %>%
+        arrange(JD) %>%
+        mutate(MJD = JD - 2400000.5) %>%
+        select(JD, MJD, everything())
 }
 
 if (ShouldRun) {
-    AverageBy(data_1$B, Bands %>% filter(Band == "R")) %>% print
+
+    dirPath <- file.path("Output", "Data")
+
+    if (!dir.exists(dirPath))
+        dir.create(dirPath, recursive = TRUE)
+
+    Bands %>%
+        SplitByGroups(ID) %>%
+        future_map(function(grp) {
+            fPath <- file.path(dirPath, glue("pol_avg_{grp$Band}.dat"))
+            AverageBy(data_1[[grp$Band]], grp) %>%
+                WriteFixed(
+                    path = fPath,
+                    frmt = c(
+                        rep("%20.8f", 2),
+                        rep("%15.8f", 7),
+                        "%8d", "%10.2f", "%8d"))
+    }) %>% print
 }
