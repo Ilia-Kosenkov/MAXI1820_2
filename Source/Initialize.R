@@ -31,7 +31,9 @@
     library(magrittr)
     library(rlang)
     library(stringr)
-
+    library(future)
+    library(furrr)
+    
     library(RLibs)
     library(Dipol2Red)
 
@@ -125,6 +127,7 @@ makeActiveBinding("ShouldRun",
             ~ future_map_int(seq_len(max(y, 1)), ~ Sys.getpid())) %>%
         set_names(future_map(seq_len(max(x, 1)), ~Sys.getpid())) %>% bind_cols
 }
+
 
 
 if (!ShouldRun) {
