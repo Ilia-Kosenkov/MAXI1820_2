@@ -20,7 +20,8 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-.Initialize <- function() {
+.LoadLibs <- function()
+{
     library(RColorBrewer)
     library(scales)
     library(foreach)
@@ -35,13 +36,17 @@
     library(Dipol2Red)
 
     # experimental parallel
-    library(multidplyr)
-    library(foreach)
     library(doSNOW)
+    library(foreach)
+
+}
+
+.Initialize <- function() {
+    .LoadLibs()
 
     file.path("Source") %>%
         dir(pattern = ".R", full.names = TRUE, recursive = TRUE) %>%
-        discard(str_detect, "Initialize\\.R") %>%
+        purrr::discard(str_detect, "Initialize\\.R") %>%
         walk(source)
 
     Bands <<- read_table(file.path("Input", "Bands.dat"), col_types = cols())
@@ -60,7 +65,6 @@
         map(mutate, MJD = JD - 2400000.5) %>%
         set_names(Bands$Band)
 
-
 }
 
 .SetupCluster <- function() {
@@ -75,12 +79,15 @@
 }
 
 .InitCluster <- function(cluster = .Cluster) {
-    clusterCall(cluster$ClusterDesc, function() {
-        library(tidyverse)
-        library(magrittr)
-        library(RLibs)
-        library(Dipol2Red)
-    })
+
+    clusterCall(cluster$ClusterDesc, .LoadLibs)
+
+    #funs <- ls(envir = .GlobalEnv) %>%
+        #keep(~eval_tidy(sym(.x)) %is% "function")
+
+    #clusterExport(cluster$ClusterDesc, funs)
+    #clusterCall(cluster$ClusterDesc, function()
+        #{assign("RunParallel", FALSE, envir = .GlobalEnv) })
 
     invisible(NULL)
 }
@@ -89,20 +96,34 @@ makeActiveBinding("ShouldRun",
                   function() getOption(".IsInitialized", FALSE),
                   .GlobalEnv)
 
-makeActiveBinding("RunParallel",
-                  function()
-                      rlang::`%||%`(getOption(".RunParallel"), FALSE),
-                  .GlobalEnv)
+.PlanCL <- function(...) {
+    args <- list(...)
 
+    if (length(args) == 2L) {
+        x <- args[[1]]
+        y <- args[[2]]
+    }
+    else if (length(args) == 1L) {
+        x <- args[[1]][1]
+        y <- args[[1]][2]
+    }
+    else stop("Wrong cluster dimensions")
 
-`%exec%` <- function(obj, ex) {
-
-    if (RunParallel)
-        e <- foreach:::getDoPar()
+    if (x == 0L)
+        higher <- tweak(sequential)
     else
-        e <- foreach:::getDoSeq()
+        higher <- tweak(cluster, workers = x)
 
-    e$fun(obj, substitute(ex), parent.frame(), e$data)
+    if (y == 0L)
+        lower <- tweak(sequential)
+    else
+        lower <- tweak(cluster, workers = y)
+
+    plan(list(higher, lower))
+
+    future_map(seq_len(max(x, 1)),
+            ~ future_map_int(seq_len(max(y, 1)), ~ Sys.getpid())) %>%
+        set_names(future_map(seq_len(max(x, 1)), ~Sys.getpid())) %>% bind_cols
 }
 
 
@@ -110,10 +131,4 @@ if (!ShouldRun) {
     .Initialize()
     assign("data_1", .ReadData_1(), .GlobalEnv)
     options(.IsInitialized = TRUE)
-}
-if (ShouldRun &&
-        (getOption(".SetParallel") %||% FALSE)) {
-    assign(".Cluster", .SetupCluster(), .GlobalEnv)
-    .InitCluster()
-    options(.SetParallel = FALSE)
 }
