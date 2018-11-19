@@ -37,7 +37,7 @@ AverageBy <- function(data, bandInfo, by = 1, by_obs = NA) {
         select(JD, MJD, everything())
 }
 
-if (ShouldRun) {
+if (FALSE) {
 
     dirPath <- file.path("Output", "Data")
 
