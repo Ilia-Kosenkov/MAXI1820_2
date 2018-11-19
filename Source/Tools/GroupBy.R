@@ -23,9 +23,6 @@
 
 GroupBy <- function(.data, ...) {
 
-    if (!RunParallel)
-        return(group_by(.data, ...))
-
     dots <- enquos(...) %>%
         map(quo_squash) %>%
         map(lazyeval::as.lazy)

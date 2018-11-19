@@ -21,8 +21,6 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Ungroup <- function(.data, ...) {
-    if (!RunParallel)
-        return(ungroup(.data, ...))
 
     return(ungroup(collect(.data), ...))
 }

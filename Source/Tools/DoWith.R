@@ -22,21 +22,29 @@
 
 DoWith <- function(.data, ..., .export) {
 
-    if (!RunParallel)
-        return(do(.data, ...))
-
     if (!.data %is% party_df)
         stop("`.data` should be `party_df`.")
 
-    if (!missing(.export))
-        walk2(.export, names(.export),
+    if (!missing(.export)) {
+        .export <- enquo(.export) %>% quo_squash
+
+        exportArgs <- .export %>% call_args %>% quo_squash
+        exportNames <- names(exportArgs)
+        exportNames[!nzchar(exportNames)] <-
+            as.character(exportArgs[!nzchar(exportNames)])
+        exportArgs <- map(exportArgs, eval_tidy) %>%
+            set_names(exportNames)
+
+        walk2(exportArgs, exportNames,
             ~ cluster_assign_value(.data$cluster, .y, .x))
+    }
 
-    result <- do(.data, ...)
-
-    if (!missing(.export))
-        walk(names(.export),
-            ~ cluster_rm(.data$cluster, .x))
-
+    result <- tryCatch(
+        do(.data, ...),
+        finally = {
+            if (!missing(.export))
+                walk(exportNames,
+                    ~ cluster_rm(.data$cluster, .x))
+    })
     return(result)
 }
