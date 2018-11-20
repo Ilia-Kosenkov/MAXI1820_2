@@ -86,17 +86,6 @@
 
 }
 
-.SetupCluster <- function() {
-    library(parallel)
-    library(doSNOW)
-
-    cl <- Cluster$new(max(detectCores() - 2, 2))
-
-    cl$Register()
-
-    return(cl)
-}
-
 
 makeActiveBinding("ShouldRun",
                   function() getOption(".IsInitialized", FALSE),
