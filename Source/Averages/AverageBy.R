@@ -34,10 +34,19 @@ AverageBy <- function(data, bandInfo, by = 1, by_obs = NA) {
         bind_rows %>%
         arrange(JD) %>%
         mutate(MJD = JD - 2400000.5) %>%
-        select(JD, MJD, everything())
+        mutate(Px_min = Px - SG, Px_max = Px + SG) %>%
+        mutate(Py_min = Py - SG, Py_max = Py + SG) %>%
+        mutate(P_min = P - SG, P_max = P + SG) %>%
+        mutate(A_min = A - SG_A, A_max = A + SG_A) %>%
+        select(JD, MJD,
+               P, SG, P_min, P_max,
+               Px, Px_min, Px_max,
+               Py, Py_min, Py_max,
+               A, SG_A, A_min, A_max,
+               Cov, N, Ratio, Itt)
 }
 
-if (FALSE) {
+if (get0("ShouldRun", ifnotfound = FALSE)) {
 
     dirPath <- file.path("Output", "Data")
 
@@ -53,7 +62,7 @@ if (FALSE) {
                     path = fPath,
                     frmt = c(
                         rep("%20.8f", 2),
-                        rep("%15.8f", 7),
+                        rep("%15.8f", ncol(.) - 5),
                         "%8d", "%10.2f", "%8d"))
     }) %>% print
 }
