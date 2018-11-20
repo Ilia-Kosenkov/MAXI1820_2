@@ -46,7 +46,7 @@ AverageBy <- function(data, bandInfo, by = 1, by_obs = NA) {
                Cov, N, Ratio, Itt)
 }
 
-if (get0("ShouldRun", ifnotfound = FALSE)) {
+if (FALSE) {
 
     dirPath <- file.path("Output", "Data")
 
