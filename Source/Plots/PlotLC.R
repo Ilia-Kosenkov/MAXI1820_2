@@ -50,9 +50,9 @@ PlotLC <- function(data, x, y, ymin, ymax, group) {
         DefaultTheme()
 }
 
-if (get0("ShouldRun", ifnotfound = FALSE)) {
-
-    data <- ReadPolLCData()
+#if (get0("ShouldRun", ifnotfound = FALSE)) {
+if (FALSE) {
+    data <- ReadPolLCData_2()
 
     grobs <- c("P", "Px", "Py", "A") %>%
         future_map(function(col) {
