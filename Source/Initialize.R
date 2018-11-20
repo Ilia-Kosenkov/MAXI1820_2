@@ -34,6 +34,8 @@
     library(future)
     library(furrr)
 
+    library(tikzDevice)
+
     library(RLibs)
     library(Dipol2Red)
 
@@ -115,7 +117,8 @@ makeActiveBinding("ShouldRun",
         set_names(future_map(seq_len(max(x, 1)), ~Sys.getpid())) %>% bind_cols
 }
 
-
+# Bypassing exporting issues
+`%++%` <- RLibs::`%+%`
 
 if (!ShouldRun) {
     .Initialize()
