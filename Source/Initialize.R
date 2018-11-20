@@ -33,7 +33,7 @@
     library(stringr)
     library(future)
     library(furrr)
-    
+
     library(RLibs)
     library(Dipol2Red)
 
@@ -80,19 +80,6 @@
     return(cl)
 }
 
-.InitCluster <- function(cluster = .Cluster) {
-
-    clusterCall(cluster$ClusterDesc, .LoadLibs)
-
-    #funs <- ls(envir = .GlobalEnv) %>%
-        #keep(~eval_tidy(sym(.x)) %is% "function")
-
-    #clusterExport(cluster$ClusterDesc, funs)
-    #clusterCall(cluster$ClusterDesc, function()
-        #{assign("RunParallel", FALSE, envir = .GlobalEnv) })
-
-    invisible(NULL)
-}
 
 makeActiveBinding("ShouldRun",
                   function() getOption(".IsInitialized", FALSE),
