@@ -44,8 +44,16 @@ ReadPolLCData <- function(pathTemp1 = file.path("Output", "Data", "pol_avg_"),
         set_names(c("NO", "BandID", "Px", "Py", "P", "SG", "A", "SG_A",
             "N", "Phase", "JD")) %>%
         mutate(MJD = JD - 2400000.5) %>%
-        select(JD, MJD, everything(), - Phase) %>%
         mutate(ID = NO - min(NO) + maxID + 1) %>%
+        mutate(P_min = P - SG, P_max = P + SG) %>%
+        mutate(Px_min = Px - SG, Px_max = Px + SG) %>%
+        mutate(Py_min = Py - SG, Py_max = Py + SG) %>%
+        mutate(A_min = A - SG_A, A_max = A + SG_A) %>%
+        select(ID, JD, MJD,
+               P, SG, P_min, P_max,
+               Px, Px_min, Px_max,
+               Py, Py_min, Py_max,
+               A, SG_A, A_min, A_max, BandID, NO) %>%
         SplitByGroups(BandID)
 
     nms2 <- data2 %>%
