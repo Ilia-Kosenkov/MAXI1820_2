@@ -46,6 +46,7 @@ AverageBy <- function(data, bandInfo, by = 1, by_obs = NA) {
                Cov, N, Ratio, Itt)
 }
 
+#if (get0("ShouldRun", ifnotfound = FALSE)) {
 if (FALSE) {
 
     dirPath <- file.path("Output", "Data")
@@ -56,8 +57,8 @@ if (FALSE) {
     Bands %>%
         SplitByGroups(ID) %>%
         future_map(function(grp) {
-            fPath <- file.path(dirPath, glue("pol_avg_{grp$Band}.dat"))
-            AverageBy(data_1[[grp$Band]], grp) %>%
+            fPath <- file.path(dirPath, glue("pol_avg_all_2_{grp$Band}.dat"))
+            AverageBy(data_2[[grp$Band]], grp, by = 100) %>%
                 WriteFixed(
                     path = fPath,
                     frmt = c(
