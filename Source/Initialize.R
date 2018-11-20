@@ -71,6 +71,21 @@
 
 }
 
+.ReadData_2 <- function(path = file.path("Input", "maxi1820_2")) {
+    files <- dir(path, pattern = ".csv")
+
+    Bands$Band %>%
+        map_chr(~glue("maxi[0-9]*{tolower(.x)}.*csv")) %>%
+        map(~files[str_detect(files, .x)]) %>%
+        map(~map(.x, ~ (read_csv(file.path(path, .x), col_types = cols())))) %>%
+        map(reduce, bind_rows) %>%
+        map(set_names, c("JD", "Ref", "Obs")) %>%
+        map(arrange, JD) %>%
+        map(mutate, MJD = JD - 2400000.5) %>%
+        set_names(Bands$Band)
+
+}
+
 .SetupCluster <- function() {
     library(parallel)
     library(doSNOW)
@@ -123,5 +138,6 @@ makeActiveBinding("ShouldRun",
 if (!ShouldRun) {
     .Initialize()
     assign("data_1", .ReadData_1(), .GlobalEnv)
+    assign("data_2", .ReadData_2(), .GlobalEnv)
     options(.IsInitialized = TRUE)
 }
