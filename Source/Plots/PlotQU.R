@@ -56,8 +56,8 @@ PlotQU <- function(data, q, u, qmin, qmax, umin, umax, group) {
 
 }
 
-if (get0("ShouldRun", ifnotfound = FALSE)) {
-
+#if (get0("ShouldRun", ifnotfound = FALSE)) {
+if (FALSE) {
     data <- ReadPolLCData_2()
     data2 <- ReadPolLCData_2(
         pathTemp1 = file.path("Output", "Data", "pol_avg_all_"),
