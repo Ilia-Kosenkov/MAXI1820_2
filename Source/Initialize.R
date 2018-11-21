@@ -56,7 +56,22 @@
     Bands <<- read_table(file.path("Input", "Bands.dat"), col_types = cols())
 }
 
-.ReadData_1 <- function(path = file.path("Input", "maxi1820")) {
+.ReadData_0 <- function(path = file.path("Input", "maxi1820_0")) {
+    files <- dir(path, pattern = ".csv")
+
+    Bands$Band %>%
+        map_chr(~glue("maxi?[0-9]+{tolower(.x)}[0-9]+\\.csv")) %>%
+        map(~files[str_detect(files, .x)]) %>%
+        map(~map(.x, ~ (read_csv(file.path(path, .x), col_types = cols())))) %>%
+        map(reduce, bind_rows) %>%
+        map(set_names, c("JD", "Ref", "Obs")) %>%
+        map(arrange, JD) %>%
+        map(mutate, MJD = JD - 2400000.5) %>%
+        set_names(Bands$Band)
+
+}
+
+.ReadData_1 <- function(path = file.path("Input", "maxi1820_1")) {
     files <- dir(path, pattern = ".csv")
 
     Bands$Band %>%
@@ -86,6 +101,25 @@
 
 }
 
+.ReadFieldStars <- function(pth = file.path("Input", "field_stars_pol.dat")) {
+    data <- read.table(pth, header = TRUE, stringsAsFactors = FALSE) %>%
+        as.tibble %>%
+        set_names(c(
+            "Star", "BandID",
+            "Px", "Py", "P", "SG",
+            "A", "SG_A", "N", "Phase", "JD")) %>%
+        filter(Star >= 700) %>%
+        mutate(Star = Star - 700L, MJD = JD - 2400000.5) %>%
+        select(Star, JD, MJD, Px, Py, P, SG, A, SG_A, N, BandID) %>%
+        SplitByGroups(BandID)
+
+    nms <- data %>%
+        map(~mean(pull(.x, BandID))) %>%
+        map_chr(~Bands %>% filter(ID == .x) %>% pull(Band))
+
+    data %>% set_names(nms) %>%
+        map(select, -BandID)
+}
 
 makeActiveBinding("ShouldRun",
                   function() getOption(".IsInitialized", FALSE),
@@ -122,11 +156,13 @@ makeActiveBinding("ShouldRun",
 }
 
 # Bypassing exporting issues
-`%++%` <- RLibs::`%+%`
+#`%&%` <- RLibs::`%+%`
 
 if (!ShouldRun) {
     .Initialize()
+    assign("data_0", .ReadData_0(), .GlobalEnv)
     assign("data_1", .ReadData_1(), .GlobalEnv)
     assign("data_2", .ReadData_2(), .GlobalEnv)
+    assign("field_stars", .ReadFieldStars(), .GlobalEnv)
     options(.IsInitialized = TRUE)
 }
