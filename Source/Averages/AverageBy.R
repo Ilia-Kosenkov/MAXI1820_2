@@ -57,13 +57,14 @@ if (FALSE) {
     Bands %>%
         SplitByGroups(ID) %>%
         future_map(function(grp) {
-            fPath <- file.path(dirPath, glue("pol_avg_all_2_{grp$Band}.dat"))
-            AverageBy(data_2[[grp$Band]], grp, by = 100) %>%
+            fPath <- file.path(dirPath, glue("pol_avg_all_0_{grp$Band}.dat"))
+            AverageBy(data_0[[grp$Band]], grp, by = 1000) %>%
                 WriteFixed(
                     path = fPath,
                     frmt = c(
                         rep("%20.8f", 2),
                         rep("%15.8f", ncol(.) - 5),
                         "%8d", "%10.2f", "%8d"))
-    }) %>% print
+    })
+
 }
