@@ -28,11 +28,11 @@ PlotLC <- function(data, x, y, ymin, ymax, group) {
     group <- enquo(group)
 
     ymin <-
-        if (quo_is_missing(ymin)) sym(as.character(quo_squash(y)) %++% "_min")
+        if (quo_is_missing(ymin)) sym(as.character(quo_squash(y)) %&% "_min")
         else ymin
 
     ymax <-
-        if (quo_is_missing(ymax)) sym(as.character(quo_squash(y)) %++% "_max")
+        if (quo_is_missing(ymax)) sym(as.character(quo_squash(y)) %&% "_max")
         else ymax
 
     ggplot(data,

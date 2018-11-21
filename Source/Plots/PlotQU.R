@@ -30,19 +30,19 @@ PlotQU <- function(data, q, u, qmin, qmax, umin, umax, group) {
     group <- enquo(group)
 
     qmin <-
-        if (quo_is_missing(qmin)) sym(as.character(quo_squash(q)) %++% "_min")
+        if (quo_is_missing(qmin)) sym(as.character(quo_squash(q)) %&% "_min")
         else qmin
 
     qmax <-
-        if (quo_is_missing(qmax)) sym(as.character(quo_squash(q)) %++% "_max")
+        if (quo_is_missing(qmax)) sym(as.character(quo_squash(q)) %&% "_max")
         else qmax
 
     umin <-
-        if (quo_is_missing(umin)) sym(as.character(quo_squash(u)) %++% "_min")
+        if (quo_is_missing(umin)) sym(as.character(quo_squash(u)) %&% "_min")
         else umin
 
     umax <-
-        if (quo_is_missing(umax)) sym(as.character(quo_squash(u)) %++% "_max")
+        if (quo_is_missing(umax)) sym(as.character(quo_squash(u)) %&% "_max")
         else umax
 
     ggplot(data, aes(
