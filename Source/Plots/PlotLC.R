@@ -20,64 +20,146 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-PlotLC <- function(data, x, y, ymin, ymax, group) {
+PlotLC <- function(data, avg_data,
+        x, y,
+        ymin, ymax,
+        group,
+        xrng = NULL, yrng = NULL,
+        xlab = quo_text(x),
+        ylab = quo_text(y),
+        isTex = F) {
+
     x <- enquo(x)
     y <- enquo(y)
     ymin <- enquo(ymin)
     ymax <- enquo(ymax)
     group <- enquo(group)
 
-    ymin <-
-        if (quo_is_missing(ymin)) sym(as.character(quo_squash(y)) %&% "_min")
-        else ymin
+    ynms <- GetMinMaxNames(!!y)
 
-    ymax <-
-        if (quo_is_missing(ymax)) sym(as.character(quo_squash(y)) %&% "_max")
-        else ymax
+    if (quo_is_missing(ymin))
+        ymin <- ynms$min
 
-    ggplot(data,
+    if (quo_is_missing(ymax))
+        ymax <- ynms$max
+
+    if (!is.null(yrng)) {
+        data %<>%
+            Clamp(!!ymin, yrng) %>%
+            Clamp(!!ymax, yrng)
+
+        avg_data %<>%
+            Clamp(!!ymin, yrng) %>%
+            Clamp(!!ymax, yrng)
+    }
+
+    p <- ggplot(data,
         aes(x = !!x, y = !!y,
             ymin = !!ymin,
             ymax = !!ymax,
-            col = !!group)) +
-        geom_smooth(
-            mapping = aes(x = !!x, y = !!y),
-            formula = y ~ x,
-            method = "lm",
-            level = 0.68,
-            color = "#000000") +
+            col = !!group,
+            fill = !!group,
+            shape = !!group)) +
+        scale_color_manual(
+            limits = Style_Groups,
+            values = Style_GroupColors,
+            guide = FALSE) +
+        scale_fill_manual(
+            limits = Style_Groups,
+            values = Style_GroupFills,
+            guide = FALSE) +
+        scale_shape_manual(
+            limits = Style_Groups,
+            values = Style_GroupShapes,
+            guide = FALSE) +
         geom_pointrange() +
-        DefaultTheme()
+        geom_pointrange(data = avg_data %>%
+            ModifyLevels(Group, function(g) as.numeric(g) + 4),
+            size = 1) +
+        DefaultTheme(textSz = Style_TickFontSz, titleSz = Style_LabelFontSz) +
+        coord_cartesian(xlim = xrng, ylim = yrng,
+                        expand = FALSE)
+
+    if (is_null(xrng))
+        xrng <- GGPlotGetRange(p)$x
+    if (is_null(yrng))
+        yrng <- GGPlotGetRange(p)$y
+
+
+    p %<>%
+        LinearScaleTicks(xrng, gp = gpar(fontsize = Style_TickFontSz)) %>%
+        LinearScaleTicks(
+            yrng,
+            side = "y", n = 4,
+            brTrans = function(x)
+                LabelsRep(x, isTex = isTex, sameDigitCount = TRUE),
+            gp = gpar(fontsize = Style_TickFontSz))
+
+    p + ylab(ylab) + xlab(xlab)
 }
 
-#if (get0("ShouldRun", ifnotfound = FALSE)) {
-if (FALSE) {
-    data <- ReadPolLCData_2()
+if (get0("ShouldRun", ifnotfound = FALSE)) {
+#if (FALSE) {
 
-    grobs <- c("P", "Px", "Py", "A") %>%
-        future_map(function(col) {
-            data %>%
-                map(PlotLC, MJD, !!sym(col)) %>%
-            GGPlotPanelLabs(labels = names(data), hjust = 3, vjust = 2)
-        })
+    bndOrder <- Bands %>% pull(Band)
+    data <- ReadAllAvgData()[bndOrder]
+    data_avg <- ReadAllAvgData(
+        pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder]
+
+    types <- c("P", "A")
+    typeLabs <- c("$P_{..3}$ (\\%)", "$\\theta_{..3}$ (deg) ")
+
+    xlim <- data %>%
+        map(pull, MJD) %>%
+        range %>%
+        Expand(factor = 0.06)
+
+    ylim <- types %>%
+        map(GetMinMaxNames) %>%
+        map(~map(data, select, !!.x[[1]], !!.x[[2]])) %>%
+        map(unlist) %>%
+        map(quantile, c(0.001, 0.991))
+
+    grobs <-
+        future_pmap(
+            list(types, ylim, typeLabs),
+            function(col, ylim, lab) {
+                pmap(list(data, data_avg, names(data)),
+                    ~PlotLC(.x, .y,
+                        MJD, !!sym(col),
+                        xrng = xlim, yrng = ylim,
+                        group = Group,
+                        ylab = glue(lab),
+                        isTex = TRUE)) %>%
+                GGPlotPanelLabs(
+                    labels = letters[seq_len(length(data))],
+                    hjust = 3, vjust = 2,
+                    gp = gpar(fontsize = Style_LabelFontSz))
+            })
 
     pth <- file.path("Output", "Plots")
     if (!dir.exists(pth))
         dir.create(pth, recursive = TRUE)
 
-    tikz(file.path(pth, "light_curves.tex"),
-        width = 6, height = 7, standAlone = TRUE)
+    future_map2(grobs, types,
+        function(g, tp) {
+            lPth <- file.path(pth, glue("light_curve_{tp}.tex"))
+            tikz(lPth,
+                width = Style_WidthStdInch,
+                height = Style_HeightStdInch,
+                standAlone = TRUE)
+            tryCatch({
+                g %>%
+                    GGPlot2GrobEx %>%
+                    GrobsArrange(
+                        ncol = 1,
+                        labsMar = Style_LabsMarStd,
+                        axisMar = Style_AxisMarStd,
+                        vGap = Style_VGapStd) %>%
+                     GrobPlot
+            }, finally = dev.off())
 
-    tryCatch({
-            grobs %>%
-                map(GGPlot2GrobEx) %>%
-                map(~GrobsArrange(
-                        .x, ncol = 1,
-                        labsMar = margin(1, 1, 1, 1, "cm"),
-                        axisMar = margin(1, 1, 1, 1, "cm"),
-                        vGap = unit(0.1, "cm"))) %>%
-                walk(GrobPlot)
-    }, finally = dev.off())
-
-    Tex2Pdf(file.path(pth, "light_curves.tex"), verbose = TRUE)
+            Tex2Pdf(lPth)
+        })
+        
 }
