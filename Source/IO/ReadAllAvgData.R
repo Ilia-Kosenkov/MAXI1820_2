@@ -27,12 +27,10 @@ ReadAllAvgData <- function(
     files <- dir(dirPath, full.names = TRUE) %>%
         StrExtractNamedGroups(pattern) %>%
         select(Src, id, band) %>%
-        pmap(~read_table2(..1, col_types = cols(), comment = "#") %>%
+        future_pmap(~read_table2(..1, col_types = cols(), comment = "#") %>%
             mutate(Group = !!..2, Band = !!..3)) %>%
         bind_rows %>%
         SplitByGroups(Band, .names = Band) %>%
-        map(arrange, MJD)
-
-
-
+        map(arrange, MJD) %>%
+        map(mutate, Group = as.factor(Group))
 }
