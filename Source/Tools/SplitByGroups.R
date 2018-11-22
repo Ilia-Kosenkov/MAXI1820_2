@@ -20,16 +20,25 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-SplitByGroups <- function(.data, ...) {
+SplitByGroups <- function(.data, ..., .names) {
     if (!missing(...))
         .data <- group_by(.data, ...)
+
+    .names <- enquo(.names)
+
     result <- nest(.data, .key = "data__") %>%
         select(data__, everything())
     nms <- head(names(result), -1)
-    result %>% pmap(function(...) {
+    result <- result %>% pmap(function(...) {
         args <- list(...)
         reduce2(args[-1], names(args[-1]),
                 ~mutate(..1, !!..3 := !!..2), .init = ..1)
     })
 
+    if (!quo_is_missing(.names)) {
+        names <- result %>% map(~head(pull(.x, !!.names), 1))
+        result <- set_names(result, names)
+    }
+
+    return(result)
 }
