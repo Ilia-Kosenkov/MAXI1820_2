@@ -37,6 +37,6 @@ SubtractISM <- function(data, ism) {
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
     SubtractISM(
-        ReadAllAvgData(pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)"),
-        AverageFieldStars()) %>% print
+        ReadAllAvgData(pattern = "pol_avg_(?<id>[0-9]+)_(?<band>\\w)"),
+        AverageFieldStars()) ->> tmp
 }
