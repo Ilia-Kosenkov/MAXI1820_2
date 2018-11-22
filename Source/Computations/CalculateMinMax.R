@@ -20,7 +20,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-CalculateMinMax <- function(.data, col, err, col_min, col_max) {
+CalculateMinMax <- function(.data, col, err, col_min, col_max, sgm = 1) {
     col_min <- enquo(col_min)
     col_max <- enquo(col_max)
     col <- quo_squash(enquo(col))
@@ -35,6 +35,6 @@ CalculateMinMax <- function(.data, col, err, col_min, col_max) {
 
     err <- enquo(err)
 
-    .data %>% mutate(!!col_min := !!col - !!err,
-                     !!col_max := !!col + !!err)
+    .data %>% mutate(!!col_min := !!col - sgm * !!err,
+                     !!col_max := !!col + sgm * !!err)
 }
