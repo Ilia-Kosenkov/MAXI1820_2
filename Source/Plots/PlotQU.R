@@ -22,7 +22,7 @@
 
 PlotQU <- function(data,
         q, u, qmin, qmax, umin, umax, colGroup,
-        isTex = FALSE) {
+        isTex = FALSE, plotGrid = FALSE) {
     q <- enquo(q)
     u <- enquo(u)
     qmin <- enquo(qmin)
@@ -71,42 +71,7 @@ PlotQU <- function(data,
         ymin = !!umin, ymax = !!umax,
         col = !!colGroup,
         fill = !!colGroup,
-        shape = !!colGroup)) +
-    geom_point(size = 4) +
-    geom_errorbarh(size = 0.75, height = 0) +
-    geom_errorbar(size = 0.75, width = 0) +
-    scale_color_manual(
-        limits = Style_GroupsBands,
-        values = Style_GroupColorsBands,
-        guide = FALSE) +
-    scale_fill_manual(
-        limits = Style_GroupsBands,
-        values = Style_GroupColorsBands,
-        guide = FALSE) +
-    scale_shape_manual(
-        limits = Style_GroupsBands,
-        values = Style_GroupShapesBands,
-        guide = FALSE) +
-    scale_linetype_manual(
-        limits = Style_GroupsBands,
-        values = Style_GroupLinesBands,
-        guide = FALSE) +
-    geom_segment(
-        aes(
-            x = !!q, xend = !!q_end,
-            y = !!u, yend = !!u_end,
-            col = !!colGroup,
-            linetype = NULL),
-        arrowData,
-        inherit.aes = FALSE,
-        size = 0.75,
-        arrow = arrow(length = unit(10, "pt"))) +
-    DefaultTheme(
-        textSz = Style_TickFontSz,
-        titleSz = Style_LabelFontSz) +
-    coord_cartesian(clip = "off") +
-    xlab(if (isTex) "$q_{BVR}$ (\\%)" else expression(italic(q[BVR]) ~ "(%)")) +
-    ylab(if (isTex) "$u_{BVR}$ (\\%)" else expression(italic(u[BVR]) ~ "(%)"))
+        shape = !!colGroup))
 
     xrng <- GetRange(
         data,
@@ -117,6 +82,63 @@ PlotQU <- function(data,
         data,
         col = !!u, col_min = !!umin, col_max = !!umax) %>%
         Expand(factor = 0.06)
+
+    if (plotGrid) {
+        p <- p +
+            geom_segment(
+                aes(x = x, xend = xend, y = y, yend = yend),
+                tibble(
+                    x = c(xrng[1], 0), xend = c(xrng[2], 0),
+                    y = c(0, yrng[1]), yend = c(0, yrng[2])),
+                inherit.aes = FALSE,
+                alpha = 0.3, size = 1)
+    }
+    p <- p +
+        geom_point(size = 4) +
+        geom_errorbarh(size = 0.75, height = 0) +
+        geom_errorbar(size = 0.75, width = 0) +
+        scale_color_manual(
+            limits = Style_GroupsBands,
+            values = Style_GroupColorsBands,
+            guide = FALSE) +
+        scale_fill_manual(
+            limits = Style_GroupsBands,
+            values = Style_GroupColorsBands,
+            guide = FALSE) +
+        scale_shape_manual(
+            limits = Style_GroupsBands,
+            values = Style_GroupShapesBands,
+            guide = FALSE) +
+        scale_linetype_manual(
+            limits = Style_GroupsBands,
+            values = Style_GroupLinesBands,
+            guide = FALSE) +
+        geom_segment(
+            aes(
+                x = !!q, xend = !!q_end,
+                y = !!u, yend = !!u_end,
+                col = !!colGroup,
+                linetype = NULL),
+            arrowData,
+            inherit.aes = FALSE,
+            size = 0.75,
+            arrow = arrow(length = unit(10, "pt"))) +
+        DefaultTheme(
+            textSz = Style_TickFontSz,
+            titleSz = Style_LabelFontSz) +
+        coord_cartesian(clip = "off",
+            xlim = xrng, ylim = yrng, expand = FALSE) +
+        xlab(
+            if (isTex)
+                "$q_{BVR}$ (\\%)"
+            else
+                expression(italic(q[BVR]) ~ "(%)")) +
+        ylab(
+            if (isTex)
+                "$u_{BVR}$ (\\%)"
+            else
+                expression(italic(u[BVR]) ~ "(%)"))
+
 
     p %>%
         LinearScaleTicks(
@@ -143,7 +165,9 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
 
 
     plt <- data %>% PlotQU(Px, Py,
-        colGroup = ID, isTex = TRUE)
+        colGroup = ID,
+        plotGrid = TRUE,
+        isTex = TRUE)
 
     drPath <- file.path("Output", "Plots")
     if (!dir.exists(drPath))
