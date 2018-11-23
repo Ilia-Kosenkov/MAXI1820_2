@@ -62,7 +62,7 @@ PlotQU <- function(data,
             !!quo_name(q) := Xc + Mdl * cos(Angle),
             !!quo_name(q_end) := Xc - Mdl * cos(Angle),
             !!quo_name(u) := Yc + Mdl * sin(Angle),
-            !!quo_name(u_end) := Yc - Mdl * sin(Angle)) %>% print
+            !!quo_name(u_end) := Yc - Mdl * sin(Angle))
 
     p <- ggplot(data, aes(
         x = !!q, y = !!u,
@@ -100,9 +100,27 @@ PlotQU <- function(data,
         inherit.aes = FALSE,
         size = 0.75,
         arrow = arrow(length = unit(10, "pt"))) +
-    DefaultTheme()
+    DefaultTheme() +
+    coord_cartesian(clip = "off")
 
-    p 
+    xrng <- GetRange(
+        data,
+        col = !!q, col_min = !!qmin, col_max = !!qmax) %>%
+        Expand(factor = 0.06)
+
+    yrng <- GetRange(
+        data,
+        col = !!u, col_min = !!umin, col_max = !!umax) %>%
+        Expand(factor = 0.06)
+
+    p %>%
+        LinearScaleTicks(
+            rng = xrng, side = "x",
+            gp = gpar(fontsize = Style_TickFontSz)) %>%
+        LinearScaleTicks(
+            rng = yrng, side = "y",
+            gp = gpar(fontsize = Style_TickFontSz))
+
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
@@ -110,9 +128,10 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     bndOrder <- Bands %>% pull(Band)
     data <- ReadAllAvgData(
             pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)") %>%
+       # SubtractISM(AverageFieldStars()[bndOrder]) %>%
         bind_rows %>%
         inner_join(select(Bands, Band, ID), by = "Band") %>%
-        mutate(ID = as.factor(ID))
+        mutate(ID = as.factor(ID)) %>% print
 
 
     data %>% PlotQU(Px, Py,
