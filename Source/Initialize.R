@@ -31,9 +31,12 @@
     library(magrittr)
     library(rlang)
     library(stringr)
+
     library(future)
     library(furrr)
 
+    library(grid)
+    library(gridExtra)
     library(tikzDevice)
 
     library(RLibs)
