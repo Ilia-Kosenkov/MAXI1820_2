@@ -21,7 +21,7 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 PlotQU <- function(data,
-        q, u, qmin, qmax, umin, umax, colGroup,
+        q, u, qmin, qmax, umin, umax, group,
         isTex = FALSE, plotGrid = FALSE) {
     q <- enquo(q)
     u <- enquo(u)
@@ -29,7 +29,7 @@ PlotQU <- function(data,
     qmax <- enquo(qmax)
     umin <- enquo(umin)
     umax <- enquo(umax)
-    colGroup <- enquo(colGroup)
+    group <- enquo(group)
     q_end <- sym(paste0(quo_squash(q), "_end"))
     u_end <- sym(paste0(quo_squash(u), "_end"))
 
@@ -45,33 +45,22 @@ PlotQU <- function(data,
     if (quo_is_missing(umax))
         umax <- GetMinMaxNames(!!u)$max
 
-    subtr <- 0.03
+    subtr <- -0.03
 
     arrowData <- data %>%
-        select(!!q, !!u, !!colGroup) %>%
-        SplitByGroups(!!colGroup) %>%
-        map(AsSegments, !!q, !!u) %>%
+        select(!!q, !!u, !!group) %>%
+        SplitByGroups(!!group) %>%
+        map(ModifySegemnts, x = !!q, y = !!u, shift = subtr) %>%
         bind_rows %>%
-        mutate(!!quo_squash(colGroup) := as.factor(!!colGroup)) %>%
-        mutate(
-            Mdl = sqrt((!!q - !!q_end) ^ 2 + (!!u - !!u_end) ^ 2),
-            Angle = atan2(!!u - !!u_end, !!q - !!q_end),
-            Xc = 0.5 * (!!q + !!q_end),
-            Yc = 0.5 * (!!u + !!u_end)) %>%
-        mutate(Mdl = 0.5 * (Mdl - subtr)) %>%
-        mutate(
-            !!quo_name(q) := Xc + Mdl * cos(Angle),
-            !!quo_name(q_end) := Xc - Mdl * cos(Angle),
-            !!quo_name(u) := Yc + Mdl * sin(Angle),
-            !!quo_name(u_end) := Yc - Mdl * sin(Angle))
+        mutate(!!quo_squash(group) := as.factor(!!group))
 
     p <- ggplot(data, aes(
         x = !!q, y = !!u,
         xmin = !!qmin, xmax = !!qmax,
         ymin = !!umin, ymax = !!umax,
-        col = !!colGroup,
-        fill = !!colGroup,
-        shape = !!colGroup))
+        col = !!group,
+        fill = !!group,
+        shape = !!group))
 
     xrng <- GetRange(
         data,
@@ -91,12 +80,12 @@ PlotQU <- function(data,
                     x = c(xrng[1], 0), xend = c(xrng[2], 0),
                     y = c(0, yrng[1]), yend = c(0, yrng[2])),
                 inherit.aes = FALSE,
-                alpha = 0.3, size = 1)
+                alpha = Style_AlphaBackground, size = Style_LineSize)
     }
     p <- p +
-        geom_point(size = 4) +
-        geom_errorbarh(size = 0.75, height = 0) +
-        geom_errorbar(size = 0.75, width = 0) +
+        geom_point(size = Style_SymbolSize) +
+        geom_errorbarh(size = Style_ErrorBarSize, height = 0) +
+        geom_errorbar(size = Style_ErrorBarSize, width = 0) +
         scale_color_manual(
             limits = Style_GroupsBands,
             values = Style_GroupColorsBands,
@@ -117,12 +106,12 @@ PlotQU <- function(data,
             aes(
                 x = !!q, xend = !!q_end,
                 y = !!u, yend = !!u_end,
-                col = !!colGroup,
+                col = !!group,
                 linetype = NULL),
             arrowData,
             inherit.aes = FALSE,
-            size = 0.75,
-            arrow = arrow(length = unit(10, "pt"))) +
+            size = Style_LineSize,
+            arrow = arrow(length = Style_ArrowLength)) +
         DefaultTheme(
             textSz = Style_TickFontSz,
             titleSz = Style_LabelFontSz) +
@@ -165,7 +154,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
 
 
     plt <- data %>% PlotQU(Px, Py,
-        colGroup = ID,
+        group = ID,
         plotGrid = TRUE,
         isTex = TRUE)
 
