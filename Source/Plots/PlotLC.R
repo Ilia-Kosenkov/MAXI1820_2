@@ -72,10 +72,16 @@ PlotLC <- function(data, avg_data,
             limits = Style_Groups,
             values = Style_GroupShapes,
             guide = FALSE) +
-        geom_pointrange() +
-        geom_pointrange(data = avg_data %>%
-            ModifyLevels(Group, function(g) as.numeric(g) + 4),
-            size = 1) +
+        geom_point(size = Style_SymbolSizeSmall) +
+        geom_errorbar(size = Style_ErrorBarSize,
+            width = 0) +
+        geom_point(data = avg_data %>%
+                ModifyLevels(Group, function(g) as.numeric(g) + 4),
+            size = Style_SymbolSize) +
+        geom_errorbar(data = avg_data %>%
+                ModifyLevels(Group, function(g) as.numeric(g) + 4),
+            width = 0,
+            size = Style_ErrorBarSizeLarge) +
         DefaultTheme(textSz = Style_TickFontSz, titleSz = Style_LabelFontSz) +
         coord_cartesian(xlim = xrng, ylim = yrng,
                         expand = FALSE)
