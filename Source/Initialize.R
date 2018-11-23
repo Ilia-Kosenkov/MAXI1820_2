@@ -121,7 +121,11 @@
         map_chr(~Bands %>% filter(ID == .x) %>% pull(Band))
 
     data %>% set_names(nms) %>%
-        map(select, -BandID)
+        map(select, - BandID) %>%
+        map(CalculateMinMax, P, SG) %>%
+        map(CalculateMinMax, Px, SG) %>%
+        map(CalculateMinMax, Py, SG) %>%
+        map(CalculateMinMax, A, SG_A)
 }
 
 makeActiveBinding("ShouldRun",
@@ -161,7 +165,7 @@ makeActiveBinding("ShouldRun",
 # Bypassing exporting issues
 #`%&%` <- RLibs::`%+%`
 
-if (!ShouldRun) {
+if (!(get0("ShouldRun", ifnotfound = FALSE))) {
     .Initialize()
     assign("data_0", .ReadData_0(), .GlobalEnv)
     assign("data_1", .ReadData_1(), .GlobalEnv)
