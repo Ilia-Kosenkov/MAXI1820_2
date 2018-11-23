@@ -21,7 +21,8 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 PlotQU <- function(data,
-        q, u, qmin, qmax, umin, umax, colGroup) {
+        q, u, qmin, qmax, umin, umax, colGroup,
+        isTex = FALSE) {
     q <- enquo(q)
     u <- enquo(u)
     qmin <- enquo(qmin)
@@ -100,8 +101,12 @@ PlotQU <- function(data,
         inherit.aes = FALSE,
         size = 0.75,
         arrow = arrow(length = unit(10, "pt"))) +
-    DefaultTheme() +
-    coord_cartesian(clip = "off")
+    DefaultTheme(
+        textSz = Style_TickFontSz,
+        titleSz = Style_LabelFontSz) +
+    coord_cartesian(clip = "off") +
+    xlab(if (isTex) "$q_{BVR}$ (\\%)" else expression(italic(q[BVR]) ~ "(%)")) +
+    ylab(if (isTex) "$u_{BVR}$ (\\%)" else expression(italic(u[BVR]) ~ "(%)"))
 
     xrng <- GetRange(
         data,
@@ -126,14 +131,37 @@ PlotQU <- function(data,
 if (get0("ShouldRun", ifnotfound = FALSE)) {
 #if (FALSE) {
     bndOrder <- Bands %>% pull(Band)
-    data <- ReadAllAvgData(
-            pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)") %>%
-       # SubtractISM(AverageFieldStars()[bndOrder]) %>%
+    dt <- ReadAllAvgData(
+            pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder]
+    field <- AverageFieldStars()[bndOrder]
+
+    data <- dt %>%
+        SubtractISM(field) %>%
         bind_rows %>%
         inner_join(select(Bands, Band, ID), by = "Band") %>%
-        mutate(ID = as.factor(ID)) %>% print
+        mutate(ID = as.factor(ID))
 
 
-    data %>% PlotQU(Px, Py,
-        colGroup = ID) %>% print
+    plt <- data %>% PlotQU(Px, Py,
+        colGroup = ID, isTex = TRUE)
+
+    drPath <- file.path("Output", "Plots")
+    if (!dir.exists(drPath))
+        dir.create(drPath, recursive = TRUE)
+    fPath <- file.path(drPath, "QU_avg" %&%
+    "_intr" %&%
+    ".tex")
+
+    tikz(fPath, width = Style_WidthStdInch, height = Style_HeightStdInch,
+        standAlone = TRUE)
+
+    tryCatch({
+             plt %>% GGPlot2GrobEx %>%
+                GrobMarginSet(
+                    labsMar = Style_LabsMarStd,
+                    axisMar = Style_AxisMarStd) %>%
+                GrobPlot
+        }, finally = dev.off())
+
+    Tex2Pdf(fPath, verbose = TRUE)
 }
