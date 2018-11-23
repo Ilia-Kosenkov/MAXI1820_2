@@ -20,76 +20,101 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-PlotQU <- function(data, q, u, qmin, qmax, umin, umax, group) {
+PlotQU <- function(data,
+        q, u, qmin, qmax, umin, umax, colGroup) {
     q <- enquo(q)
     u <- enquo(u)
     qmin <- enquo(qmin)
     qmax <- enquo(qmax)
     umin <- enquo(umin)
     umax <- enquo(umax)
-    group <- enquo(group)
+    colGroup <- enquo(colGroup)
+    q_end <- sym(paste0(quo_squash(q), "_end"))
+    u_end <- sym(paste0(quo_squash(u), "_end"))
 
-    qmin <-
-        if (quo_is_missing(qmin)) sym(as.character(quo_squash(q)) %&% "_min")
-        else qmin
+    if (quo_is_missing(qmin))
+        qmin <- GetMinMaxNames(!!q)$min
 
-    qmax <-
-        if (quo_is_missing(qmax)) sym(as.character(quo_squash(q)) %&% "_max")
-        else qmax
+    if (quo_is_missing(umin))
+        umin <- GetMinMaxNames(!!u)$min
 
-    umin <-
-        if (quo_is_missing(umin)) sym(as.character(quo_squash(u)) %&% "_min")
-        else umin
+    if (quo_is_missing(qmax))
+        qmax <- GetMinMaxNames(!!q)$max
 
-    umax <-
-        if (quo_is_missing(umax)) sym(as.character(quo_squash(u)) %&% "_max")
-        else umax
+    if (quo_is_missing(umax))
+        umax <- GetMinMaxNames(!!u)$max
 
-    ggplot(data, aes(
+    subtr <- 0.03
+
+    arrowData <- data %>%
+        select(!!q, !!u, !!colGroup) %>%
+        SplitByGroups(!!colGroup) %>%
+        map(AsSegments, !!q, !!u) %>%
+        bind_rows %>%
+        mutate(!!quo_squash(colGroup) := as.factor(!!colGroup)) %>%
+        mutate(
+            Mdl = sqrt((!!q - !!q_end) ^ 2 + (!!u - !!u_end) ^ 2),
+            Angle = atan2(!!u - !!u_end, !!q - !!q_end),
+            Xc = 0.5 * (!!q + !!q_end),
+            Yc = 0.5 * (!!u + !!u_end)) %>%
+        mutate(Mdl = 0.5 * (Mdl - subtr)) %>%
+        mutate(
+            !!quo_name(q) := Xc + Mdl * cos(Angle),
+            !!quo_name(q_end) := Xc - Mdl * cos(Angle),
+            !!quo_name(u) := Yc + Mdl * sin(Angle),
+            !!quo_name(u_end) := Yc - Mdl * sin(Angle)) %>% print
+
+    p <- ggplot(data, aes(
         x = !!q, y = !!u,
         xmin = !!qmin, xmax = !!qmax,
         ymin = !!umin, ymax = !!umax,
-        col = !!group)) +
-    geom_point(size = 1.5) +
-    geom_errorbarh(size = 0.5) +
-    geom_errorbar(size = 0.5)
+        col = !!colGroup,
+        fill = !!colGroup,
+        shape = !!colGroup)) +
+    geom_point(size = 4) +
+    geom_errorbarh(size = 0.75, height = 0) +
+    geom_errorbar(size = 0.75, width = 0) +
+    scale_color_manual(
+        limits = Style_GroupsBands,
+        values = Style_GroupColorsBands,
+        guide = FALSE) +
+    scale_fill_manual(
+        limits = Style_GroupsBands,
+        values = Style_GroupColorsBands,
+        guide = FALSE) +
+    scale_shape_manual(
+        limits = Style_GroupsBands,
+        values = Style_GroupShapesBands,
+        guide = FALSE) +
+    scale_linetype_manual(
+        limits = Style_GroupsBands,
+        values = Style_GroupLinesBands,
+        guide = FALSE) +
+    geom_segment(
+        aes(
+            x = !!q, xend = !!q_end,
+            y = !!u, yend = !!u_end,
+            col = !!colGroup,
+            linetype = NULL),
+        arrowData,
+        inherit.aes = FALSE,
+        size = 0.75,
+        arrow = arrow(length = unit(10, "pt"))) +
+    DefaultTheme()
 
+    p 
 }
 
-#if (get0("ShouldRun", ifnotfound = FALSE)) {
-if (FALSE) {
-    data <- ReadPolLCData_2()
-    data2 <- ReadPolLCData_2(
-        pathTemp1 = file.path("Output", "Data", "pol_avg_all_"),
-        pathTemp2 = file.path("Output", "Data", "pol_avg_all_2_")) %>%
-        map(function(x) {
-            levels(x$Group) <- as.numeric(levels(x$Group)) + 2
-            x
-        })
-    plts <- data %>%
-        map(PlotQU, Px, Py, group = Group) %>%
-        map(~.x + scale_color_manual(
-                guide = FALSE,
-                limits = 1:4,
-                values = brewer.pal(6, "Paired")[c(5, 1, 6, 2)])) %>%
-        map2(data2,
-                ~ .x +
-                geom_point(data = .y, shape = 15, size = 3) +
-                geom_errorbarh(data = .y, size = 2, height = 0) +
-                geom_errorbar(data = .y, size = 2, width = 0)) %>%
-        map(~.x + DefaultTheme()) %>%
-        GGPlotPanelLabs(labels = names(data), hjust = 3, vjust = 2)
+if (get0("ShouldRun", ifnotfound = FALSE)) {
+#if (FALSE) {
+    bndOrder <- Bands %>% pull(Band)
+    data <- ReadAllAvgData(
+            pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)") %>%
+        bind_rows %>%
+        inner_join(select(Bands, Band, ID), by = "Band") %>%
+        mutate(ID = as.factor(ID))
 
-    fPath <- file.path("Output", "Plots", "qu.tex")
 
-    tikz(fPath, width = 5, height = 5, standAlone = TRUE)
-    tryCatch({
-        plts %>% GGPlot2GrobEx() %>%
-            GrobMarginSet(
-                labsMar = margin(1, 1, 1, 1, "cm"),
-                axisMar = margin(1, 1, 1, 1, "cm")) %>%
-            walk(GrobPlot)
-    }, finally = dev.off())
-
-    Tex2Pdf(fPath, verbose = TRUE)
+    data %>% PlotQU(Px, Py,
+        colGroup = ID) %>% print
 }
