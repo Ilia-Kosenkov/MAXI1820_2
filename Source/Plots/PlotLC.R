@@ -27,7 +27,7 @@ PlotLC <- function(data, avg_data,
         xrng = NULL, yrng = NULL,
         xlab = quo_text(x),
         ylab = quo_text(y),
-        isTex = F) {
+        isTex = FALSE) {
 
     x <- enquo(x)
     y <- enquo(y)
