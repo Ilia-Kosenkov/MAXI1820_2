@@ -27,9 +27,9 @@ GetRange <- function(.data, col, err, col_min, col_max, .func = range) {
     col_max <- enquo(col_max)
 
     if (quo_is_missing(err)) {
-        if (quo_is_missing(!!col_min))
+        if (quo_is_missing(col_min))
             col_min <- GetMinMaxNames(!!col)$min
-        if (quo_is_missing(!!col_max))
+        if (quo_is_missing(col_max))
             col_max <- GetMinMaxNames(!!col)$max
 
         transmute(.data, L = !!col_min, U = !!col_max) %>%
