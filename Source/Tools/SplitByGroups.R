@@ -26,13 +26,24 @@ SplitByGroups <- function(.data, ..., .names) {
 
     .names <- enquo(.names)
 
-    result <- nest(.data, .key = "data__") %>%
+    result <- nest(.data, .key = "data__")  %>%
         select(data__, everything())
     nms <- head(names(result), -1)
     result <- result %>% pmap(function(...) {
         args <- list(...)
         reduce2(args[-1], names(args[-1]),
-                ~mutate(..1, !!..3 := !!..2), .init = ..1)
+            function(init, col, nm) {
+                if (is.factor(extract2(.data, nm))) {
+                    levels <- levels(extract2(.data, nm))
+                    vals <- factor(levels[col], levels)
+
+                    mutate(init, !!nm := vals)
+
+                }
+                else
+                    mutate(init, !!nm := !!col)
+            },
+            .init = ..1)
     })
 
     if (!quo_is_missing(.names)) {
