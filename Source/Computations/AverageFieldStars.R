@@ -27,8 +27,8 @@ AverageFieldStars <- function(data = field_stars, which = c(2, 3, 6, 7, 9)) {
         map(summarise,
             JD = mean(JD), MJD = mean(MJD),
             SW = sum(W),
-            Px = Px %*% W / SW,
-            Py = Py %*% W / SW,
+            Px = as.numeric(Px %*% W / SW),
+            Py = as.numeric(Py %*% W / SW),
             SG = sqrt(1 / SW)) %>%
         map(CalculatePolFromQU) %>%
         map(select, - SW) %>%
