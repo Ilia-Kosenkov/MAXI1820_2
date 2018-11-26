@@ -56,7 +56,10 @@
         purrr::discard(str_detect, "Initialize\\.R") %>%
         walk(source)
 
-    Bands <<- read_table(file.path("Input", "Bands.dat"), col_types = cols())
+    Bands <<- read_table(
+            file.path("Input", "Bands.dat"),
+            col_types = cols()) %>%
+        mutate(Freq = Const.c / (WL * 1e-8))
 }
 
 .ReadData_0 <- function(path = file.path("Input", "maxi1820_0")) {
