@@ -108,6 +108,7 @@ PlotQUPerBand <- function(data, field,
                 col = !!colGroup),
             data = arrData,
             size = Style_LineSize,
+            arrow = arrow(length = Style_ArrowLength),
             inherit.aes = FALSE)
 
 
@@ -115,6 +116,20 @@ PlotQUPerBand <- function(data, field,
         geom_point(size = Style_SymbolSize) +
         geom_errorbar(size = Style_ErrorBarSize, width = 0) +
         geom_errorbarh(size = Style_ErrorBarSize, height = 0)
+
+    if (is.null(xrng))
+        xrng <- list(data, field) %>%
+            map(select, !!qmin, !!qmax) %>%
+            bind_rows %>%
+            GetRange(col_min = !!qmin, col_max = !!qmax) %>%
+            Expand(factor = 0.06)
+
+    if (is.null(yrng))
+        yrng <- list(data, field) %>%
+            map(select, !!umin, !!umax) %>%
+            bind_rows %>%
+            GetRange(col_min = !!umin, col_max = !!umax) %>%
+            Expand(factor = 0.06)
 
     p <- p +
         DefaultTheme(textSz = Style_TickFontSz, titleSz = Style_LabelFontSz) +
@@ -128,9 +143,17 @@ PlotQUPerBand <- function(data, field,
             limits = Style_GroupsAvgOnly,
             values = Style_GroupShapes, guide = FALSE) +
         xlab(xlab) +
-        ylab(ylab)
-    p
+        ylab(ylab) +
+        coord_cartesian(xlim = xrng, ylim = yrng, expand = FALSE, clip = "off")
 
+
+    p %>%
+        LinearScaleTicks(
+            rng = xrng, side = "x",
+            gp = gpar(fontsize = Style_TickFontSz)) %>%
+        LinearScaleTicks(
+            rng = yrng, side = "y",
+            gp = gpar(fontsize = Style_TickFontSz))
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
@@ -145,5 +168,43 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         map(mutate, Group = as.factor(-1)) %>%
         map(mutate, ID = as.factor(-1))
 
-    map2(data, field, PlotQUPerBand) %>% print
+    rngs <- list(data, field) %>%
+        flatten %>%
+        map(select, Px_min, Px_max, Py_min, Py_max) %>%
+        bind_rows %>% {
+            list(
+                xrng = GetRange(., col_min = Px_min, col_max = Px_max),
+                yrng = GetRange(., col_min = Py_min, col_max = Py_max))
+        } %>%
+        map(Expand, factor = 0.06)
+
+    plts <- map2(data, field,
+        ~ PlotQUPerBand(
+            .x, .y,
+            xrng = rngs$xrng, yrng = rngs$yrng,
+            xlab = glue("$q_{{{.x$Band[1]}}}$ (\\%)"),
+            ylab = glue("$u_{{{.x$Band[1]}}}$ (\\%)"),
+        ))
+
+    drPath <- file.path("Output", "Plots")
+    if (!dir.exists(drPath))
+        dir.create(drPath, recursive = TRUE)
+
+    future_map2(plts, bndOrder,
+        function(p, bnd) {
+            fPath <- file.path(drPath, glue("QU_indv_{bnd}.tex"))
+            tikz(fPath,
+                width = Style_WidthStdInch, height = Style_HeightStdInch,
+                standAlone = TRUE)
+            tryCatch({
+                p %>%
+                    GGPlot2GrobEx %>%
+                    GrobMarginSet(
+                        labsMar = Style_LabsMarStd,
+                        axisMar = Style_AxisMarStd) %>%
+                    GrobPlot
+            }, finally = dev.off())
+
+            Tex2Pdf(fPath, verbose = TRUE)
+        })
 }
