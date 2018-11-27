@@ -59,7 +59,8 @@ PlotLC <- function(data, avg_data,
             ymax = !!ymax,
             col = !!group,
             fill = !!group,
-            shape = !!group)) +
+            shape = !!group
+            )) +
         scale_color_manual(
             limits = Style_Groups,
             values = Style_GroupColors,
@@ -106,11 +107,14 @@ PlotLC <- function(data, avg_data,
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
 #if (FALSE) {
-
+    grps <- c(0, 2, 3)
     bndOrder <- Bands %>% pull(Band)
-    data <- ReadAllAvgData()[bndOrder]
+    data <- ReadAllAvgData()[bndOrder] %>%
+        map(filter, Group %in% grps)
+
     data_avg <- ReadAllAvgData(
-        pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder]
+        pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder] %>%
+        map(filter, Group %in% grps)
 
     types <- c("P", "A")
     typeLabs <- c("$P_{..3}$ (\\%)", "$\\theta_{..3}$ (deg) ")
@@ -167,5 +171,5 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
 
             Tex2Pdf(lPth)
         })
-        
+
 }

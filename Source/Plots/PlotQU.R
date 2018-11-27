@@ -141,6 +141,7 @@ PlotQU <- function(data,
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
 #if (FALSE) {
+    grps <- c(0, 2, 3)
     bndOrder <- Bands %>% pull(Band)
     dt <- ReadAllAvgData(
             pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder]
@@ -150,7 +151,8 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         SubtractISM(field) %>%
         bind_rows %>%
         inner_join(select(Bands, Band, ID), by = "Band") %>%
-        mutate(ID = as.factor(ID))
+        mutate(ID = as.factor(ID)) %>%
+        filter(Group %in% grps)
 
 
     plt <- data %>% PlotQU(Px, Py,
