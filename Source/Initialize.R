@@ -20,8 +20,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-.LoadLibs <- function()
-{
+.LoadLibs <- function() {
     library(RColorBrewer)
     library(scales)
     library(foreach)
@@ -68,11 +67,13 @@
     Bands$Band %>%
         map_chr(~glue("maxi?[0-9]+{tolower(.x)}[0-9]+\\.csv")) %>%
         map(~files[str_detect(files, .x)]) %>%
-        map(~map(.x, ~ (read_csv(file.path(path, .x), col_types = cols())))) %>%
-        map(reduce, bind_rows) %>%
-        map(set_names, c("JD", "Ref", "Obs")) %>%
-        map(arrange, JD) %>%
+        map(~map(.x, ~ mutate(read_csv(file.path(path, .x), col_types = cols()),
+            Path = !!.x
+            ))) %>%
+        map(bind_rows) %>%
+        map(set_names, c("JD", "Ref", "Obs", "Path")) %>%
         map(mutate, MJD = JD - 2400000.5) %>%
+        map(arrange, MJD) %>%
         set_names(Bands$Band)
 
 }
@@ -81,7 +82,22 @@
     files <- dir(path, pattern = ".csv")
 
     Bands$Band %>%
-        map_chr(~glue("maxi{.x}[0-9]*\\.csv")) %>%
+        map_chr(~glue("maxi?[0-9]+{tolower(.x)}[0-9]+\\.csv")) %>%
+        map(~files[str_detect(files, .x)]) %>%
+        map(~map(.x, ~ (read_csv(file.path(path, .x), col_types = cols())))) %>%
+        map(reduce, bind_rows) %>%
+        map(set_names, c("JD", "Ref", "Obs")) %>%
+        map(mutate, MJD = JD - 2400000.5) %>%
+        map(arrange, JD) %>%
+        set_names(Bands$Band)
+
+}
+
+.ReadData_2 <- function(path = file.path("Input", "maxi1820_2")) {
+    files <- dir(path, pattern = ".csv")
+
+    Bands$Band %>%
+        map_chr(~glue("maxi?{.x}[0-9]*\\.csv")) %>%
         map(~files[str_detect(files, .x)]) %>%
         map(~map(.x, ~ (read_csv(file.path(path, .x), col_types = cols())))) %>%
         map(reduce, bind_rows) %>%
@@ -92,11 +108,11 @@
 
 }
 
-.ReadData_2 <- function(path = file.path("Input", "maxi1820_2")) {
+.ReadData_3 <- function(path = file.path("Input", "maxi1820_3")) {
     files <- dir(path, pattern = ".csv")
 
     Bands$Band %>%
-        map_chr(~glue("maxi[0-9]*{tolower(.x)}.*csv")) %>%
+        map_chr(~glue("maxi?[0-9]*{tolower(.x)}.*csv")) %>%
         map(~files[str_detect(files, .x)]) %>%
         map(~map(.x, ~ (read_csv(file.path(path, .x), col_types = cols())))) %>%
         map(reduce, bind_rows) %>%
@@ -131,9 +147,15 @@
         map(CalculateMinMax, A, SG_A)
 }
 
-makeActiveBinding("ShouldRun",
+if (!exists("ShouldRun", envir = .GlobalEnv))
+    makeActiveBinding("ShouldRun",
                   function() getOption(".IsInitialized", FALSE),
                   .GlobalEnv)
+
+if (exists("ShouldRun", envir = .GlobalEnv) &&
+    !bindingIsLocked("ShouldRun", .GlobalEnv))
+    lockBinding("ShouldRun", .GlobalEnv)
+
 
 .PlanCL <- function(...) {
     args <- list(...)
@@ -173,6 +195,8 @@ if (!(get0("ShouldRun", ifnotfound = FALSE))) {
     assign("data_0", .ReadData_0(), .GlobalEnv)
     assign("data_1", .ReadData_1(), .GlobalEnv)
     assign("data_2", .ReadData_2(), .GlobalEnv)
+    assign("data_3", .ReadData_3(), .GlobalEnv)
+
     assign("field_stars", .ReadFieldStars(), .GlobalEnv)
     options(.IsInitialized = TRUE)
 }
