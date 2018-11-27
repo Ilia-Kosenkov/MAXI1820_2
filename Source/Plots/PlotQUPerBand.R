@@ -157,11 +157,13 @@ PlotQUPerBand <- function(data, field,
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
+    grps <- c(0, 2, 3)
     bndOrder <- Bands %>% pull(Band)
     data <- ReadAllAvgData(
             pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder] %>%
         map(inner_join, select(Bands, Band, ID), by = "Band") %>%
-        map(mutate, ID = as.factor(ID))
+        map(mutate, ID = as.factor(ID)) %>%
+        map(filter, Group %in% grps)
 
     field <- field_stars[bndOrder] %>%
         map(filter, Star %in% c(2, 3, 6, 7, 9)) %>%
@@ -178,7 +180,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         } %>%
         map(Expand, factor = 0.06)
 
-    plts <- map2(data, field,
+    plts <- future_map2(data, field,
         ~ PlotQUPerBand(
             .x, .y,
             xrng = rngs$xrng, yrng = rngs$yrng,
