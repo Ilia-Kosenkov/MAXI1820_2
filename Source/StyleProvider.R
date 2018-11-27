@@ -24,13 +24,13 @@ purrr::pmap(tibble::tribble(
     ~Vars,                     ~Vals,
     "Style_LabelFontSz",       17,
     "Style_TickFontSz",        15,
-    "Style_GroupColors",       c(brewer.pal(8, "Paired")
+    "Style_GroupColors",       c(brewer.pal(10, "Paired")
                                  [c(1, 5, 3, 9, 2, 6, 4, 10)], "#000000"),
-    "Style_GroupFills",        c(brewer.pal(8, "Paired")
+    "Style_GroupFills",        c(brewer.pal(10, "Paired")
                                  [c(1, 5, 3, 9, 2, 6, 4, 10)], "#000000"),
-    "Style_GroupShapes",       c(1, 0, 5, 2, 21, 22, 23, 24, 21),
-    "Style_Groups",            c(0:7, -1),
-    "Style_GroupsAvgOnly",     c(4:7, 0:3, -1),
+    "Style_GroupShapes",       c(1, 0, 5, 2, 21, 22, 23, 24, 4),
+    "Style_Groups",            c(0, 2, 3, 1, 4, 6, 7, 5, -1),#c(0:7, -1),
+    "Style_GroupsAvgOnly",     c(4, 6, 7, 5, 0, 2, 3, 1, -1),
     "Style_GroupsBands",       c(2:4, -1),
     "Style_GroupLinesBands",   c(1, 2, 4, 1),
     "Style_GroupColorsBands",  c(brewer.pal(3, "Set1")[c(2, 3, 1)], "#000000"),
@@ -40,12 +40,25 @@ purrr::pmap(tibble::tribble(
     "Style_VGapStd",           unit(0.1, "cm"),
     "Style_WidthStdInch",      6,
     "Style_HeightStdInch",     6,
+    "Style_HeightWideInch",    4,
     "Style_SymbolSize",        4,
     "Style_SymbolSizeSmall",   2,
     "Style_ErrorBarSize",      0.75,
     "Style_ErrorBarSizeLarge", 1.5,
     "Style_AlphaBackground",   0.15,
     "Style_LineSize",          0.75,
-    "Style_ArrowLength",       unit(10, "pt")
+    "Style_ArrowLength",       unit(10, "pt"),
+    "Style_GroupAlphas",       quo(c(rep(1, 8), Style_AlphaBackground)),
+    "Style_GroupsCombined",    c(1, 3, 4, 2, 5, 7, 8, 6, 0, -1:-9),
+    "Style_GC_Colors",         c(brewer.pal(10, "Paired")
+                                        [c(2, 6, 4, 10, 1, 5, 3, 9)],
+                                    rep("#000000", 10)),
+    "Style_GC_Shapes",         c(21, 22, 23, 24, 1, 0, 5, 2, 25, rep(6, 9)),
+    "Style_GC_Alphas",         quo(c(rep(1, 8), 1,
+                                    rep(Style_AlphaBackground, 9))),
+    "Style_GC_LineTypes",      c(rep(1L, 8), 1, 1, 2, 3, 1, 1, 4, 5, 1, 6),
+    "Style_GC_LineTypes2",     c(rep(1L, 8), rep(2L, 10))
+
+
     ),
-    ~makeActiveBinding(.x, function() .y, .GlobalEnv))
+    ~makeActiveBinding(.x, function() eval_tidy(.y), .GlobalEnv))
