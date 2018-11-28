@@ -32,8 +32,8 @@ FoldWithPeriod <- function(data, x, period = 17.0 / 24.0) {
         arrange(!!x_p)
 }
 
-#if (get0("ShouldRun", ifnotfound = FALSE)) {
-if (FALSE) {
+if (get0("ShouldRun", ifnotfound = FALSE)) {
+#if (FALSE) {
     tic()
 
     src_1 <- Bands$Band
@@ -41,21 +41,25 @@ if (FALSE) {
 
     drPath <- path("Output", "Data", "Folded")
     dir_create(drPath)
-
+    period <- 17.0 / 24.0
     crossing(src_1, src_2) %>%
         future_pmap(~data_2[[..1]] %>%
             AverageBy(bandInfo = Bands %>% filter(Band == ..1),
                 by = 1,
                 by_obs = ..2) %>%
-            FoldWithPeriod(MJD, 17.0 / 24.0) %>%
+            FoldWithPeriod(MJD, period) %>%
             select(JD, MJD, MJD_p, everything()) %>%
             WriteFixed(path(
                 drPath,
-                glue("folded_{..1}_by_{ifelse(is.na(..2), \"all\", ..2)}.dat")),
+                glue_fmt("folded_{band}_by",
+                    "{ifelse(is.na(by), \"all\", by)}",
+                    "with_{period:%.3f}.dat",
+                    .sep = "_",
+                    .envir = list(band = ..1, by = ..2, period = period))),
                 frmt = c(
                         rep("%20.8f", 3),
                         rep("%15.8f", ncol(.) - 6),
-                        "%8d", "%10.2f", "%8d")))
+                        "%8d", "%10.2f", "%8d")), .progress = TRUE)
 
     toc()
 }
