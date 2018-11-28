@@ -22,14 +22,16 @@
 
 AverageBy <- function(data, bandInfo, by = 1, by_obs = NA) {
 
-    if (!all(is.na(by_obs)))
-        selector <- function(col, rn) (rn - 1) %/% by_obs + 1
-    else
-        selector <- function(col, ...) as.integer(floor(col / by))
+    selector_c <- function(rn, n)
+        (rn - 1) %/% ifelse(is.na(by_obs), n, by_obs) + 1
+    selector_d <- function(col) as.integer(floor(col / by))
 
     ftrs <- data %>%
-        mutate(MJD_ID__ = selector(MJD, row_number())) %>%
-        SplitByGroups(MJD_ID__) %>%
+        mutate(ID_1__ = selector_d(MJD)) %>%
+        SplitByGroups(ID_1__) %>%
+        map(mutate, ID_2__ = selector_c(row_number(), n())) %>%
+        map(SplitByGroups, ID_2__) %>%
+        flatten %>%
         future_map(~Sigma_2(.x, bandInfo)) %>%
         bind_rows %>%
         arrange(JD) %>%
