@@ -32,14 +32,15 @@ AverageBy <- function(data, bandInfo, by = 1, by_obs = NA) {
         map(mutate, ID_2__ = selector_c(row_number(), n())) %>%
         map(SplitByGroups, ID_2__) %>%
         flatten %>%
-        future_map(~Sigma_2(.x, bandInfo)) %>%
+        future_map(~Sigma_2(.x, bandInfo) %>%
+            bind_rows() %>%
+            mutate(Px_min = Px - SG, Px_max = Px + SG) %>%
+            mutate(Py_min = Py - SG, Py_max = Py + SG) %>%
+            mutate(P_min = P - SG, P_max = P + SG) %>%
+            mutate(A_min = A - SG_A, A_max = A + SG_A)) %>%
         bind_rows %>%
         arrange(JD) %>%
         mutate(MJD = JD - 2400000.5) %>%
-        mutate(Px_min = Px - SG, Px_max = Px + SG) %>%
-        mutate(Py_min = Py - SG, Py_max = Py + SG) %>%
-        mutate(P_min = P - SG, P_max = P + SG) %>%
-        mutate(A_min = A - SG_A, A_max = A + SG_A) %>%
         select(JD, MJD,
                P, SG, P_min, P_max,
                Px, Px_min, Px_max,
