@@ -25,7 +25,7 @@ StrExtractNamedGroups <- function(string, pattern) {
     res <- str_match_all(string, pattern) %>%
         map2(string, ~ c(.y, .x)) %>%
         discard(~length(.x) <= 1L) %>%
-        reduce(rbind) %>%
+        BindRows %>%
         as.tibble %>%
         set_names(c("Src", "Match", grpNames))
 }
