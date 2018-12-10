@@ -57,8 +57,11 @@ purrr::pmap(tibble::tribble(
     "Style_GC_Alphas",         quo(c(rep(1, 8), 1,
                                     rep(Style_AlphaBackground, 9))),
     "Style_GC_LineTypes",      c(rep(1L, 8), 1, 1, 2, 3, 1, 1, 4, 5, 1, 6),
-    "Style_GC_LineTypes2",     c(rep(1L, 8), rep(2L, 10))
-
-
+    "Style_GC_LineTypes2",     c(rep(1L, 8), rep(2L, 10)),
+    "Style_GroupsBasic",       c(0:8),
+    "Style_GroupColorsBasic",  c("#000000",
+                                    brewer.pal(4, "Set1"),
+                                    brewer.pal(4, "Dark2")),
+    "Style_GroupLinesBasic",   c(1, 2, 4, 5, 6, 4, 2, 4, 5)
     ),
     ~makeActiveBinding(.x, function() eval_tidy(.y), .GlobalEnv))
