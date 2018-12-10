@@ -26,9 +26,7 @@ FoldWithPeriod <- function(data, x, period = 17.0 / 24.0) {
     x_p <- sym(quo_name(x) %&% "_p")
 
     data %>%
-        mutate(!!x_p := !!x - min(!!x)) %>%
-        mutate(!!x_p := (!!x_p / period)) %>%
-        mutate(!!x_p := !!x_p - floor(!!x_p)) %>%
+        mutate(!!x_p := (!!x / period) %% 1) %>%
         arrange(!!x_p)
 }
 
@@ -37,7 +35,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     tic()
 
     src_1 <- Bands$Band
-    src_2 <- c(16, 32, 80, NA)
+    src_2 <- c(4, 16, 32, 80, NA)
 
     drPath <- path("Output", "Data", "Folded")
     dir_create(drPath)
@@ -49,7 +47,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
                 by_obs = ..2) %>%
             FoldWithPeriod(MJD, period) %>%
             select(JD, MJD, MJD_p, everything()) %>%
-            WriteFixed(path(
+            WriteFixed(fs::path(
                 drPath,
                 glue_fmt("folded_{band}_by",
                     "{ifelse(is.na(by), \"all\", by)}",
