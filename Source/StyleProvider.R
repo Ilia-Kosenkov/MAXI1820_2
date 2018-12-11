@@ -63,7 +63,8 @@ purrr::pmap(tibble::tribble(
                                     brewer.pal(4, "Set1"),
                                     brewer.pal(4, "Dark2")),
     "Style_GroupLinesBasic",   c(1, 2, 4, 5, 6, 4, 2, 4, 5),
-    "Style_GroupShapesBasic",  c(21, 22, 23, 24, 25, 1, 0, 5, 2, 6)
-
+    "Style_GroupShapesBasic",  c(21, 22, 23, 24, 25, 1, 0, 5, 2, 6),
+    "Style_LabsMarEq",         margin(1, 1, 1, 1, "cm"),
+    "Style_AxisMarEq",         margin(1, 1, 1, 1, "cm"),
     ),
     ~makeActiveBinding(.x, function() eval_tidy(.y), .GlobalEnv))
