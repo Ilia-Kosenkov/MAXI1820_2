@@ -71,7 +71,7 @@ PlotPeriodogram <- function(.data,
     }
 
 
-    xlim <- .data %>% pull(!!fCol) %>% range %>% Expand(factor = 0.06) %>% print
+    xlim <- .data %>% pull(!!fCol) %>% range %>% Expand(factor = 0.06)
     xStep <- FancyStep(xlim, modifier = c(1, 5))
     xBreaks <- GenerateBreaks(xlim, xStep, 0.1 * xStep)
 
@@ -160,12 +160,16 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         mutate(
             t = t + 0.08 * runif(n()),
             x = 0.7 * cos(2 * pi * 0.5 * t + 0.6) +
-                rnorm(n())) %>%
+                0 * rnorm(n())) %>%
         mutate(x = x - mean(x))
 
-    w <- seq(-2, 2, by = 0.05) * 2 * pi
+    w <- seq(-2, 2, length.out = 601) * 2 * pi
 
-    psd <- LSAPeriodogramEx(data, t, x, w) %>% print(n = nrow(.))
+    psd <- LSAPeriodogramEx(data, t, x, w) %>%
+        EstimateDifference(data, t, x, w) %>%
+        select(F, PSDN, Amplitude, FAP, Contrib, Tau,
+            contains("phase"), everything()) %>%
+        print(n = min(30, nrow(.)))
 
     PlotPeriodogram(psd, n = nrow(data)) %>%
         GGPlot2GrobEx() %>%
