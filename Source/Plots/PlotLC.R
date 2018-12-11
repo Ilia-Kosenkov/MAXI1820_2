@@ -105,8 +105,8 @@ PlotLC <- function(data, avg_data,
     p + ylab(ylab) + xlab(xlab)
 }
 
-if (get0("ShouldRun", ifnotfound = FALSE)) {
-#if (FALSE) {
+#if (get0("ShouldRun", ifnotfound = FALSE)) {
+if (FALSE) {
     grps <- c(0, 2, 3)
     bndOrder <- Bands %>% pull(Band)
     data <- ReadAllAvgData()[bndOrder] %>%
