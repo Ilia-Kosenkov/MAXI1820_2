@@ -21,8 +21,8 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 EstimateDifference <- function(psd, .data, t, x, w) {
-    t <- ensym(t)
-    x <- ensym(x)
+    t <- enquo(t)
+    x <- enquo(x)
 
     dtT <- pull(.data, !!t)
     dtX <- pull(.data, !!x)
@@ -37,6 +37,6 @@ EstimateDifference <- function(psd, .data, t, x, w) {
                SD2 = pmap_dbl(select(., Amplitude, W, Tau, CSPhase),
                         ~modelCS(..1, ..2, ..3, ..4)),
                Contrib = (SD1 - SD2) / SD1) %>%
-        select( -SD1, -SD2) %>%
+        select(-SD1, -SD2) %>%
         arrange(desc(Contrib))
 }
