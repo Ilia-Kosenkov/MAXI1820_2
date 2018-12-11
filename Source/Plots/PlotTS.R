@@ -20,12 +20,13 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-PlotTS <- function(.data, t, x, group, xlab, ylab, p) {
-    x <- ensym(x)
-    t <- ensym(t)
+PlotTS <- function(.data, t, x, group, xlab, ylab, p, geom = geom_point) {
+    x <- quo_squash(enquo(x))
+    t <- quo_squash(enquo(t))
     group <- enquo(group)
     x_min <- as.character(x) %&% "_min"
     x_max <- as.character(x) %&% "_max"
+    hasPlot <- !missing(p)
 
     if (quo_is_missing(group))
         group <- NULL
@@ -59,7 +60,7 @@ PlotTS <- function(.data, t, x, group, xlab, ylab, p) {
                 guide = FALSE)
 
     p <- p +
-        geom_point(
+        geom(
             aes(x = !!t, y = !!x, col = !!group,
                 fill = !!group, shape = !!group),
             .data)
@@ -67,19 +68,21 @@ PlotTS <- function(.data, t, x, group, xlab, ylab, p) {
     if (!is_empty(x_min) && !is_empty(x_max))
         p <- p +
             geom_errorbar(
-                aes(x = !!t, y = !!x,
+                aes(x = !!t,
                     ymin = !!x_min, ymax = !!x_max, col = !!group),
                 .data, width = 0, size = Style_LineSize)
 
-    if (missing(p) && !missing(xlab))
-        p <- xlab(xlab)
-    if (missing(p) && !missing(ylab))
-        p <- ylab(ylab)
+
+    if (!hasPlot && !missing(xlab))
+        p <- p + xlab(xlab)
+    if (!hasPlot && !missing(ylab))
+        p <- p + ylab(ylab)
 
     p
 }
 
-if (get0("ShouldRun", ifnotfound = FALSE)) {
+#if (get0("ShouldRun", ifnotfound = FALSE)) {
+if (FALSE) {
     data <- tibble(t = seq(0, 100, by = 0.1)) %>%
         mutate(
             t = t + 0.08 * runif(n()),
