@@ -32,17 +32,25 @@ InvestigatePeriods <- function(.data, t, x, w) {
         EstimateDifference(.data, !!t, x__, w) %>%
         select(F, P, Contrib, PSDN, Amplitude, FAP, everything()) %>%
         arrange(desc(Contrib))
-    bestP <- psd %>% pull(P) %>% head(1) %>% abs
+    bestP <- psd %>% pull(P) %>% head(1) #%>% abs
+    bestPh <- psd %>% pull(TSNPhase) %>% head(1) %>% divide_by(2 * pi)
 
     result <- list(
             psdPlot = PlotPeriodogram(psd, c(0.01, 0.1), n = nrow(.data)),
             lcPlot = PlotTS(
                 mutate(
                     .data,
-                    t__ = (!!t / bestP) %% 1,
+                    t__ = (!!t / bestP + bestPh) %% 1,
                     g__ = as.factor(1L)),
                     t = t__, x = !!x, group = g__,
-                    xlab = glue("{quo_text(t)} by {round(bestP, 2)}, d"),
+                    xlab = glue("{quo_text(t)} by {abs(round(bestP, 2))}, d"),
+                    ylab = glue("${quo_text(x)}$")),
+            lcPlot2 = PlotTS(
+                mutate(
+                    .data,
+                    g__ = as.factor(1L)),
+                    t = !!t, x = !!x, group = g__,
+                    xlab = "MJD, d",
                     ylab = glue("${quo_text(x)}$")),
             wndPlot = PlotTS(
                     psd,
@@ -103,26 +111,34 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
             result$lcPlot %>% GGPlot2GrobEx %>%
                 GrobMarginSet(
                     axisMar = Style_AxisMarEq, labsMar = Style_LabsMarEq) %>%
+                    GrobPlot
+            result$lcPlot2 %>% GGPlot2GrobEx %>%
+                GrobMarginSet(
+                    axisMar = Style_AxisMarEq, labsMar = Style_LabsMarEq) %>%
                 GrobPlot
             }, finally = dev.off())
 
         Tex2Pdf(path1, TRUE)
         Tex2Pdf(path2, TRUE)
 
-        result$psd %>% head(30) %>%
+        result$psd  %>%
             WriteFixed(
                 fs::path(path_tbl,
                     glue("{quo_text(col)}_in_{band}_by_{by}.dat")),
                 frmt = "%10.4f")
     }
+    c("Px", "Py") %>%
+        walk(function(cl) {
 
-    col <- quo(Py)
-    err <- quo(SG)
+            col <- sym(cl)
+            col <- enquo(col)
+            err <- quo(SG)
 
-    data %>% future_map(ff, col, err,
-        fs::path("Output", "Plots", "PSD"),
-        fs::path("Output", "Data", "PSD"))
-    
-        
+            data %>% future_map(ff, col, err,
+                fs::path("Output", "Plots", "PSD"),
+                fs::path("Output", "Data", "PSD"),
+                .progress = TRUE)
+        })
+       
     toc()
 }
