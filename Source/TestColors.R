@@ -78,6 +78,7 @@ TestColors <- function(bandInfo = Bands) {
 
     uIdTbl <- tibble(FJD = uId) %>%
         distinct(FJD) %>%
+        arrange(FJD) %>%
         mutate(N = 1L:n())
 
     data %<>%
@@ -92,15 +93,18 @@ TestColors <- function(bandInfo = Bands) {
     data %<>%
         map(mutate, Type = as.factor(case_when(!!!selector)))
 
-    plots <- data %>%
-        map(ggplot,
-            aes(x = MJD, y = Avg,
-                ymin = Avg - Err, ymax = Avg + Err,
-                group = Type,
-                col = Type,
-                symbol = Type)) %>%
-        map(~.x + geom_pointrange() + geom_line()) %>%
-        map2(names(data), ~ .x + DefaultTheme() + scale_y_reverse(name = .y))
+    plots <- list(data %>% map2(names(data), ~ mutate(.x, Band = !!.y)) %>%
+        bind_rows %>%
+        mutate(Band = factor(Band, levels = bNames)) %>%
+        ggplot(aes(
+                x = MJD, y = Avg, ymin = Avg - Err, ymax = Avg + Err,
+                col = Type, shape = Type,
+                group = Type)) +
+        geom_point(size = 2L) + geom_linerange(size = 0.5) + geom_line() +
+        facet_wrap(~Band, ncol = 1) +
+        DefaultTheme() + scale_shape_manual(values = c(15, 16, 18, 17)) +
+        scale_y_reverse(name = "m"))
+
     n <- nrow(bandInfo)
 
     pairs <- seq_len(n - 1L) %>%
@@ -108,11 +112,37 @@ TestColors <- function(bandInfo = Bands) {
         flatten %>%
         map(~pull(slice(bandInfo, .x), Band))
 
-    pairs 
-        
+    pNames <- pairs %>% map_chr(~glue("{.x[1]}-{.x[2]}"))
+
+    simpleData <- data %>% map(select, ID, MJD, Avg, Err, Type)
+
+    plots %<>% append(list(pairs %>%
+        map(~extract(simpleData, .x)) %>%
+        map(~inner_join(.x[[1]], select(.x[[2]], ID, Avg, Err), by = "ID")) %>%
+        map(mutate,
+            Color = Avg.x - Avg.y,
+            Err = sqrt(Err.x ^ 2 + Err.y ^ 2)) %>%
+        map2(pNames, ~ mutate(.x,
+                CID = .y)) %>%
+        bind_rows %>%
+        mutate(CID = factor(CID, levels = pNames)) %>%
+        ggplot(aes(
+            x = MJD, y = Color, ymin = Color - Err, ymax = Color + Err,
+            group = Type, color = Type, shape = Type)) +
+        geom_point(size = 2L) + geom_linerange(size = 0.5) + geom_line() +
+            facet_wrap(~CID, ncol = 1) +
+            DefaultTheme() + scale_shape_manual(values = c(15, 16, 18, 17))))
 
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
-    TestColors() %>% print
+    #TestColors() %>%
+        #GGPlot2GrobEx %>%
+        #GrobMarginSet(
+            #labsMar = margin(0.1, 0, 1, 1, "cm"),
+            #axisMar = margin(0.1, 0, 1, 1, "cm")) %>%
+        #GrobPlot
+    dir <- fs::path("Output", "TestColors") %T>% (fs::dir_create)
+    pdf(fs::path(dir, "test.pdf"), width = 7, height = 8, onefile = TRUE)
+    tryCatch(print(TestColors()), finally = dev.off())
 }
