@@ -78,10 +78,10 @@ PlotAsSpectra <- function(data,
         geom_errorbar(size = Style_LineSize, width = 0)
 
     xrng <- data %>% pull(!!x) %>%
-        range %>% Expand(factor = 0.06)
+        range %>% Expand(factor = 0.12)
 
     yrng <- GetRange(data, col_min = !!ymin, col_max = !!ymax) %>%
-        Expand(factor = 0.06)
+        Expand(factor = 0.06, direction = c(2, 1))
 
 
     bands <- data %>% pull(Band) %>% unique
@@ -94,7 +94,7 @@ PlotAsSpectra <- function(data,
             xlim = xrng, ylim = yrng, expand = FALSE, clip = "off") +
         xlab(xlab) +
         ylab(ylab) +
-        GGCustomTextAnnotation(bands, wl, - Inf, vjust = -1,
+        GGCustomTextAnnotation(bands, wl, - Inf, vjust = -0.3, hjust = 0.6,
             gp = gpar(fontsize = Style_LabelFontSz))
 
     p %>%
@@ -137,32 +137,35 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     cols <- c("P", "A")
     labs <- c("$P_{BVR}$ (\\%)", "$\\theta_{BVR}$ (deg)")
 
-    drPath <- file.path("Output", "Plots")
-    if (!dir.exists(drPath))
-        dir.create(drPath, recursive = TRUE)
+    drPath <- fs::path("Output", "Plots") %T>% (fs::dir_create)
 
-    future_map2(cols, labs, function(x, y) {
 
-        fPath <- file.path(drPath, glue("spectra_{x}.tex"))
+    future_pwalk(list(cols, labs, seq_along(cols)),
+        function(x, y, i) {
 
-        tikz(fPath,
-            width = Style_WidthStdInch,
-            height = Style_HeightWideInch,
-            standAlone = TRUE)
+            fPath <- file.path(drPath, glue("spectra_{x}.tex"))
 
-        tryCatch({
-            PlotAsSpectra(data,
-                WL, !!sym(x),
-                group = Group,
-                xlab = "$\\lambda$ (\\AA)",
-                ylab = y) %>%
-            GGPlot2GrobEx %>%
-            GrobMarginSet(
-                labsMar = Style_LabsMarStd,
-                axisMar = Style_AxisMarStd) %>%
-                GrobPlot
-            }, finally = dev.off())
+            tikz(fPath,
+                width = Style_WidthWideInch,
+                height = Style_HeightStdInch,
+                standAlone = TRUE)
 
-        Tex2Pdf(fPath)
-    })
+            tryCatch({
+                PlotAsSpectra(data,
+                        WL, !!sym(x),
+                        group = Group,
+                        xlab = "$\\lambda$ (\\AA)",
+                        ylab = y) %>%
+                    GGPlotPanelLabs(
+                        letters[i], hjust = 3, vjust = 2,
+                        gp = gpar(fontsize = Style_LabelFontSz)) %>%
+                    GGPlot2GrobEx %>%
+                    GrobMarginSet(
+                        labsMar = Style_LabsMarStd,
+                        axisMar = Style_AxisMarStd) %>%
+                        GrobPlot
+                }, finally = dev.off())
+
+            Tex2Pdf(fPath, verbose = TRUE)
+        }, .progress = TRUE)
 }
