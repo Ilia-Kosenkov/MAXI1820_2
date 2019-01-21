@@ -52,8 +52,10 @@ TestColors <- function(bandInfo = Bands) {
 
     }
 
-    softData <- suppressWarnings(Average(fs::path(root, "Soft")))
-    hard2Data <- suppressWarnings(Average(fs::path(root, "Hard2")))
+    softData <- suppressWarnings(Average(fs::path(root, "Soft"))) %>%
+        map(mutate, Avg = -Avg, Med = - Med)
+    hard2Data <- suppressWarnings(Average(fs::path(root, "Hard2"))) %>%
+        map(mutate, Avg = -Avg, Med = -Med)
 
     data2 <- map2(softData, hard2Data, bind_rows)
 
@@ -103,7 +105,8 @@ TestColors <- function(bandInfo = Bands) {
         geom_point(size = 2L) + geom_linerange(size = 0.5) + geom_line() +
         facet_wrap(~Band, ncol = 1) +
         DefaultTheme() + scale_shape_manual(values = c(15, 16, 18, 17)) +
-        scale_y_reverse(name = "m"))
+        scale_y_reverse(name = "m") +
+        xlim(c(58184.56, 58427.26)))
 
     n <- nrow(bandInfo)
 
@@ -129,10 +132,12 @@ TestColors <- function(bandInfo = Bands) {
         ggplot(aes(
             x = MJD, y = Color, ymin = Color - Err, ymax = Color + Err,
             group = Type, color = Type, shape = Type)) +
-        geom_point(size = 2L) + geom_linerange(size = 0.5) + geom_line() +
+            geom_point(size = 2L) + geom_linerange(size = 0.5) + geom_line() +
             facet_wrap(~CID, ncol = 1) +
-            DefaultTheme() + scale_shape_manual(values = c(15, 16, 18, 17))))
+            DefaultTheme() + scale_shape_manual(values = c(15, 16, 18, 17)) +
+            xlim(c(58184.56, 58427.26))))
 
+    
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
@@ -143,6 +148,6 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
             #axisMar = margin(0.1, 0, 1, 1, "cm")) %>%
         #GrobPlot
     dir <- fs::path("Output", "TestColors") %T>% (fs::dir_create)
-    pdf(fs::path(dir, "test.pdf"), width = 7, height = 8, onefile = TRUE)
+    pdf(fs::path(dir, "test2.pdf"), width = 7, height = 8, onefile = TRUE)
     tryCatch(print(TestColors()), finally = dev.off())
 }
