@@ -29,19 +29,23 @@ PlotLC <- function(data, avg_data,
         ylab = quo_text(y),
         isTex = FALSE) {
 
-    x <- enquo(x)
-    y <- enquo(y)
+    x <- ensym(x)
+    y <- ensym(y)
     ymin <- enquo(ymin)
     ymax <- enquo(ymax)
-    group <- enquo(group)
+    group <- ensym(group)
 
     ynms <- GetMinMaxNames(!!y)
 
     if (quo_is_missing(ymin))
         ymin <- ynms$min
+    else
+        ymin <- quo_squash(ymin)
 
     if (quo_is_missing(ymax))
         ymax <- ynms$max
+    else
+        ymax <- quo_squash(ymax)
 
     if (!is.null(yrng)) {
         data %<>%
@@ -105,9 +109,9 @@ PlotLC <- function(data, avg_data,
     p + ylab(ylab) + xlab(xlab)
 }
 
-#if (get0("ShouldRun", ifnotfound = FALSE)) {
-if (FALSE) {
-    grps <- c(0, 2, 3)
+if (get0("ShouldRun", ifnotfound = FALSE)) {
+#if (FALSE) {
+    grps <- c(0, 1, 2, 3)
     bndOrder <- Bands %>% pull(Band)
     data <- ReadAllAvgData()[bndOrder] %>%
         map(filter, Group %in% grps)

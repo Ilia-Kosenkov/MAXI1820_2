@@ -21,7 +21,6 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 GetMinMaxNames <- function(nm) {
-    nm <- as.character(quo_squash(enquo(nm)))
-
-    return(list(min = sym(nm %&% "_min"), max = sym(nm %&% "_max")))
+    nm <- ensym(nm)
+    return(syms(glue("{nm}_{c('min', 'max')}")) %>% set_names(c("min", "max")))
 }

@@ -39,13 +39,13 @@ LinearScaleTicks <- function(plt, rng,
                 labels = brTrans(breaks$Large)),
             list(...))
 
-        plt <- do.call("GGPlotCustomTicksEx", args)
+        plt <- do.call("GGPlotCustomTicksEx2", args)
 
         if (mirror) {
             args$side <- "top"
             args$labels <- rep(" ", length(breaks$Large))
             args$plt <- plt
-            plt <- do.call("GGPlotCustomTicksEx", args)
+            plt <- do.call("GGPlotCustomTicksEx2", args)
         }
     }
 
@@ -62,13 +62,13 @@ LinearScaleTicks <- function(plt, rng,
                 labels = brTrans(breaks$Large)),
             list(...))
 
-        plt <- do.call("GGPlotCustomTicksEx", args)
+        plt <- do.call("GGPlotCustomTicksEx2", args)
 
         if (mirror) {
             args$side <- "right"
             args$labels <- rep(" ", length(breaks$Large))
             args$plt <- plt
-            plt <- do.call("GGPlotCustomTicksEx", args)
+            plt <- do.call("GGPlotCustomTicksEx2", args)
         }
     }
 

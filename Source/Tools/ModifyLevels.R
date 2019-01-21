@@ -21,11 +21,11 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ModifyLevels <- function(data, col, fun = identity) {
-    col <- enquo(col)
+    col <- ensym(col)
     tmp <- data %>%
         pull(!!col)
 
     levels(tmp) <- fun(levels(tmp))
 
-    data %>% mutate(!!quo_squash(col) := tmp)
+    data %>% mutate(!!col := tmp)
 }

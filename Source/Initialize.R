@@ -53,10 +53,11 @@
 .Initialize <- function() {
     .LoadLibs()
 
-    file.path("Source") %>%
-        dir(pattern = ".R", full.names = TRUE, recursive = TRUE) %>%
-        purrr::discard(str_detect, "Initialize\\.R") %>%
-        walk(source)
+    #file.path("Source") %>%
+        #dir(pattern = ".R", full.names = TRUE, recursive = TRUE) %>%
+        #purrr::discard(str_detect, "Initialize\\.R") %>%
+    #walk(source)
+    RLibs::SourceAll(fs::path("Source"), "Initialize\\.R")
 
     Bands <<- read_table(
             file.path("Input", "Bands.dat"),
@@ -128,7 +129,7 @@
 
 .ReadFieldStars <- function(pth = file.path("Input", "field_stars_pol.dat")) {
     data <- read.table(pth, header = TRUE, stringsAsFactors = FALSE) %>%
-        as.tibble %>%
+        as_tibble %>%
         set_names(c(
             "Star", "BandID",
             "Px", "Py", "P", "SG",

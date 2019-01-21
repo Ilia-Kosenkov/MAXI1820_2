@@ -26,6 +26,7 @@ StrExtractNamedGroups <- function(string, pattern) {
         map2(string, ~ c(.y, .x)) %>%
         discard(~length(.x) <= 1L) %>%
         BindRows %>%
-        as.tibble %>%
+        as_tibble(.name_repair = "universal") %>%
+        suppressMessages %>%
         set_names(c("Src", "Match", grpNames))
 }
