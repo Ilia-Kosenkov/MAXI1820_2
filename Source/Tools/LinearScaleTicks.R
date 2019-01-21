@@ -22,9 +22,10 @@
 
 LinearScaleTicks <- function(plt, rng,
         side = "x", mirror = TRUE, brTrans = identity,
-        n = 6, mod = c(1, 2, 5), ...) {
+        n = 6, mod = c(1, 5), ...) {
     step <- FancyStep(rng, n, mod)
-    breaks <- GenerateBreaks(rng, step, 0.1 * step)
+    step2 <- FancyStep(rng, 10L * n, mod)
+    breaks <- GenerateBreaks(rng, step, step2, shrinkFactor = 0.0)
 
     if (side == "x") {
         plt <- plt +

@@ -167,7 +167,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
             lPth <- fs::path(pth, glue("light_curve_{tp}.tex"))
             tikz(lPth,
                 width = Style_WidthStdInch,
-                height = Style_HeightStdInch,
+                height = Style_HeightStdInch * 1.5,
                 standAlone = TRUE)
             tryCatch({
                 g %>%

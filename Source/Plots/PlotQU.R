@@ -23,15 +23,16 @@
 PlotQU <- function(data,
         q, u, qmin, qmax, umin, umax, group,
         isTex = FALSE, plotGrid = FALSE) {
-    q <- enquo(q)
-    u <- enquo(u)
+    q <- ensym(q)
+    u <- ensym(u)
     qmin <- enquo(qmin)
     qmax <- enquo(qmax)
     umin <- enquo(umin)
     umax <- enquo(umax)
-    group <- enquo(group)
-    q_end <- sym(paste0(quo_squash(q), "_end"))
-    u_end <- sym(paste0(quo_squash(u), "_end"))
+    group <- ensym(group)
+
+    q_end <- sym(paste0(q, "_end"))
+    u_end <- sym(paste0(u, "_end"))
 
     if (quo_is_missing(qmin))
         qmin <- GetMinMaxNames(!!q)$min
@@ -71,6 +72,11 @@ PlotQU <- function(data,
         data,
         col = !!u, col_min = !!umin, col_max = !!umax) %>%
         Expand(factor = 0.06)
+
+    width <- max(diff(yrng), diff(xrng))
+
+    xrng %<>% Expand(factor = width / diff(xrng) - 1)
+    yrng %<>% Expand(factor = width / diff(yrng) - 1)
 
     if (plotGrid) {
         p <- p +
@@ -136,19 +142,18 @@ PlotQU <- function(data,
         LinearScaleTicks(
             rng = yrng, side = "y",
             gp = gpar(fontsize = Style_TickFontSz))
-
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
 #if (FALSE) {
-    grps <- c(0, 2, 3)
+    grps <- c(0, 1, 2, 3)
     bndOrder <- Bands %>% pull(Band)
     dt <- ReadAllAvgData(
             pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder]
     field <- AverageFieldStars()[bndOrder]
 
     data <- dt %>%
-        SubtractISM(field) %>%
+        #SubtractISM(field) %>%                        # Comment for normal plot
         bind_rows %>%
         inner_join(select(Bands, Band, ID), by = "Band") %>%
         mutate(ID = as.factor(ID)) %>%
@@ -156,15 +161,16 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
 
 
     plt <- data %>% PlotQU(Px, Py,
-        group = ID,
-        plotGrid = TRUE,
-        isTex = TRUE)
+            group = ID,
+            #plotGrid = TRUE,                          # Comment for normal plot
+            isTex = TRUE)# %>%
+        #GGPlotPanelLabs("d", hjust = 3, vjust = 2,    # Comment for normal plot
+            #gp = gpar(fontsize = Style_LabelFontSz))  # Comment for normal plot
 
-    drPath <- file.path("Output", "Plots")
-    if (!dir.exists(drPath))
-        dir.create(drPath, recursive = TRUE)
-    fPath <- file.path(drPath, "QU_avg" %&%
-    "_intr" %&%
+    drPath <- fs::path("Output", "Plots") %T>% (fs::dir_create)
+
+    fPath <- fs::path(drPath, "QU_avg" %&%
+    #"_intr" %&%                                       # Comment for normal plot
     ".tex")
 
     tikz(fPath, width = Style_WidthStdInch, height = Style_HeightStdInch,

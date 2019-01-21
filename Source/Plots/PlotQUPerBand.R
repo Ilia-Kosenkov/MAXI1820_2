@@ -24,21 +24,21 @@ PlotQUPerBand <- function(data, field,
     q = Px, u = Py, qmin, qmax, umin, umax,
     colGroup = ID,
     shapeGroup = Group,
-    xlab = quo_text(enquo(q)),
-    ylab = quo_text(enquo(u)),
+    xlab = quo_text(ensym(q)),
+    ylab = quo_text(ensym(u)),
     xrng = NULL,
     yrng = NULL) {
 
-    q <- enquo(q)
-    u <- enquo(u)
+    q <- ensym(q)
+    u <- ensym(u)
     qmin <- enquo(qmin)
     qmax <- enquo(qmax)
     umin <- enquo(umin)
     umax <- enquo(umax)
-    colGroup <- enquo(colGroup)
-    shapeGroup <- enquo(shapeGroup)
-    q_end <- sym(paste0(quo_squash(q), "_end"))
-    u_end <- sym(paste0(quo_squash(u), "_end"))
+    colGroup <- ensym(colGroup)
+    shapeGroup <- ensym(shapeGroup)
+    q_end <- sym(paste0(q, "_end"))
+    u_end <- sym(paste0(u, "_end"))
 
     if (quo_is_missing(qmin))
         qmin <- GetMinMaxNames(!!q)$min
@@ -131,6 +131,12 @@ PlotQUPerBand <- function(data, field,
             GetRange(col_min = !!umin, col_max = !!umax) %>%
             Expand(factor = 0.06)
 
+    width <- max(diff(xrng), diff(yrng))
+
+    xrng %<>% Expand(factor = width / diff(xrng) - 1)
+    yrng %<>% Expand(factor = width / diff(yrng) - 1)
+
+
     p <- p +
         DefaultTheme(textSz = Style_TickFontSz, titleSz = Style_LabelFontSz) +
         scale_color_manual(
@@ -157,7 +163,10 @@ PlotQUPerBand <- function(data, field,
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
-    grps <- c(0, 2, 3)
+    tic("Total")
+    tic("Plots prepared")
+
+    grps <- c(0, 1, 2, 3)
     bndOrder <- Bands %>% pull(Band)
     data <- ReadAllAvgData(
             pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder] %>%
@@ -180,19 +189,29 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         } %>%
         map(Expand, factor = 0.06)
 
-    plts <- future_map2(data, field,
-        ~ PlotQUPerBand(
-            .x, .y,
-            xrng = rngs$xrng, yrng = rngs$yrng,
-            xlab = glue("$q_{{{.x$Band[1]}}}$ (\\%)"),
-            ylab = glue("$u_{{{.x$Band[1]}}}$ (\\%)"),
-        ))
+    width <- rngs %>% map_dbl(diff) %>% max
+    rngs %<>% map(~Expand(.x, factor = width / diff(.x) - 1))
 
-    drPath <- file.path("Output", "Plots")
-    if (!dir.exists(drPath))
-        dir.create(drPath, recursive = TRUE)
+    plts <- future_pmap(
+            list(data, field, seq_along(data)),
+            ~ PlotQUPerBand(
+                ..1, ..2,
+                xrng = rngs$xrng, yrng = rngs$yrng,
+                xlab = glue("$q_{{{.x$Band[1]}}}$ (\\%)"),
+                ylab = glue("$u_{{{.x$Band[1]}}}$ (\\%)"),
+                ) %>%
+                GGPlotPanelLabs(
+                    labels = letters[..3],
+                    hjust = 3, vjust = 2,
+                    gp = gpar(fontsize = Style_LabelFontSz)),
+            .progress = TRUE)
 
-    future_map2(plts, bndOrder,
+    toc()
+    tic("PDFs saved")
+
+    drPath <- fs::path("Output", "Plots") %T>% (fs::dir_create)
+
+    future_walk2(plts, bndOrder,
         function(p, bnd) {
             fPath <- file.path(drPath, glue("QU_indv_{bnd}.tex"))
             tikz(fPath,
@@ -208,5 +227,10 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
             }, finally = dev.off())
 
             Tex2Pdf(fPath, verbose = TRUE)
-        })
+        }, .progress = TRUE)
+
+    toc()
+    toc()
+    tic.clear()
+    tic.clearlog()
 }
