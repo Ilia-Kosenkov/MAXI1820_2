@@ -160,35 +160,47 @@ if (exists("ShouldRun", envir = .GlobalEnv) &&
     !bindingIsLocked("ShouldRun", .GlobalEnv))
     lockBinding("ShouldRun", .GlobalEnv)
 
+.GetChildWorkers <- function() {
+    x <- future::nbrOfWorkers()
+
+    if (x != 1L)
+        wrks <- c(x, value(future({ .GetChildWorkers() })))
+    else
+        wrks <- x
+    wrks
+}
+
+.GetTopology <- function() {
+    wrks <- .GetChildWorkers()
+    if (length(wrks) != 1)
+        wrks <- wrks[-length(wrks)]
+
+    wrks
+}
 
 .PlanCL <- function(...) {
-    args <- list(...)
 
-    if (length(args) == 2L) {
-        x <- args[[1]]
-        y <- args[[2]]
+    args <- list(...) %>%
+        map_int(as_integer)
+    if (is_empty(args) || some(args, ~ .x == 0L))
+        stop("Cannot create empty cluster")
+    if (some(args, ~ .x == 1L) && length(args) != 1L)
+        stop("Cannot have 1-proc-sized clusters")
+
+
+    topology <- .GetTopology()
+
+    if (length(args) != length(topology) || !all(args == topology)) {
+        args %>% map(function(sz) {
+            if (sz == 1L)
+                return(tweak(sequential))
+            else
+                return(tweak(cluster, workers = sz))
+            }) %>% plan
     }
-    else if (length(args) == 1L) {
-        x <- args[[1]][1]
-        y <- args[[1]][2]
-    }
-    else stop("Wrong cluster dimensions")
 
-    if (x == 0L)
-        higher <- tweak(sequential)
-    else
-        higher <- tweak(cluster, workers = x)
+    message(glue("Cluster: [{glue_collapse(.GetTopology(), sep = \", \")}]"))
 
-    if (y == 0L)
-        lower <- tweak(sequential)
-    else
-        lower <- tweak(cluster, workers = y)
-
-    plan(list(higher, lower))
-
-    future_map(seq_len(max(x, 1)),
-            ~ future_map_int(seq_len(max(y, 1)), ~ Sys.getpid())) %>%
-        set_names(future_map(seq_len(max(x, 1)), ~Sys.getpid())) %>% bind_cols
 }
 
 # Bypassing exporting issues

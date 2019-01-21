@@ -57,6 +57,8 @@ PlotLC <- function(data, avg_data,
             Clamp(!!ymax, yrng)
     }
 
+    tic(glue("Generated plot for {y}"))
+
     p <- ggplot(data,
         aes(x = !!x, y = !!y,
             ymin = !!ymin,
@@ -91,6 +93,9 @@ PlotLC <- function(data, avg_data,
         coord_cartesian(xlim = xrng, ylim = yrng,
                         expand = FALSE)
 
+    toc()
+
+    tic(glue("Decorated {y}"))
     if (is_null(xrng))
         xrng <- GGPlotGetRange(p)$x
     if (is_null(yrng))
@@ -106,11 +111,14 @@ PlotLC <- function(data, avg_data,
                 LabelsRep(x, isTex = isTex, sameDigitCount = TRUE),
             gp = gpar(fontsize = Style_TickFontSz))
 
-    p + ylab(ylab) + xlab(xlab)
+    p <- p + ylab(ylab) + xlab(xlab)
+    toc()
+    p
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
-#if (FALSE) {
+    #if (FALSE) {
+    tic("Total")
     grps <- c(0, 1, 2, 3)
     bndOrder <- Bands %>% pull(Band)
     data <- ReadAllAvgData()[bndOrder] %>%
@@ -149,15 +157,14 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
                     labels = letters[seq_len(length(data))],
                     hjust = 3, vjust = 2,
                     gp = gpar(fontsize = Style_LabelFontSz))
-            })
+            }, .progress = TRUE)
 
-    pth <- file.path("Output", "Plots")
-    if (!dir.exists(pth))
-        dir.create(pth, recursive = TRUE)
+    pth <- fs::path("Output", "Plots") %T>% (fs::dir_create)
 
+    tic("Pdfs saved")
     future_map2(grobs, types,
         function(g, tp) {
-            lPth <- file.path(pth, glue("light_curve_{tp}.tex"))
+            lPth <- fs::path(pth, glue("light_curve_{tp}.tex"))
             tikz(lPth,
                 width = Style_WidthStdInch,
                 height = Style_HeightStdInch,
@@ -173,7 +180,10 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
                      GrobPlot
             }, finally = dev.off())
 
-            Tex2Pdf(lPth)
-        })
-
+            Tex2Pdf(lPth, verbose = TRUE)
+        }, .progress = TRUE)
+    toc()
+    toc()
+    tic.clear()
+    tic.clearlog()
 }

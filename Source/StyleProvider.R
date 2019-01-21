@@ -20,7 +20,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-purrr::pmap(tibble::tribble(
+purrr::pwalk(tibble::tribble(
     ~Vars,                     ~Vals,
     "Style_LabelFontSz",       17,
     "Style_TickFontSz",        15,
@@ -35,8 +35,6 @@ purrr::pmap(tibble::tribble(
     "Style_GroupLinesBands",   c(1, 2, 4, 1),
     "Style_GroupColorsBands",  c(brewer.pal(3, "Set1")[c(2, 3, 1)], "#000000"),
     "Style_GroupShapesBands",  c(21, 22, 23, 21),
-    "Style_LabsMarStd",        margin(0.0, 0.0, 1, 1, "cm"),
-    "Style_AxisMarStd",        margin(0.25, 0.25, 0.5, 0.75, "cm"),
     "Style_VGapStd",           unit(0.1, "cm"),
     "Style_WidthStdInch",      6,
     "Style_HeightStdInch",     6,
@@ -64,7 +62,9 @@ purrr::pmap(tibble::tribble(
                                     brewer.pal(4, "Dark2")),
     "Style_GroupLinesBasic",   c(1, 2, 4, 5, 6, 4, 2, 4, 5),
     "Style_GroupShapesBasic",  c(21, 22, 23, 24, 25, 1, 0, 5, 2, 6),
-    "Style_LabsMarEq",         margin(1, 1, 1, 1, "cm"),
-    "Style_AxisMarEq",         margin(1, 1, 1, 1, "cm"),
+    "Style_LabsMarStd",        margin(0.0, 0.0, 1.1, 1.1, "cm"),
+    "Style_AxisMarStd",        margin(0.25, 0.25, 0.5, 0.75, "cm"),
+    "Style_LabsMarEq",         margin(0.9, 0.9, 0.9, 0.9, "cm"),
+    "Style_AxisMarEq",         margin(1.1, 1.1, 1.1, 1.1, "cm")
     ),
     ~makeActiveBinding(.x, function() eval_tidy(.y), .GlobalEnv))
