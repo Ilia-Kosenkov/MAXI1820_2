@@ -27,7 +27,8 @@ PlotLC <- function(data, avg_data,
         xrng = NULL, yrng = NULL,
         xlab = quo_text(x),
         ylab = quo_text(y),
-        isTex = FALSE) {
+        isTex = FALSE,
+        noXLabels = FALSE) {
 
     x <- ensym(x)
     y <- ensym(y)
@@ -103,7 +104,11 @@ PlotLC <- function(data, avg_data,
 
 
     p %<>%
-        LinearScaleTicks(xrng, gp = gpar(fontsize = Style_TickFontSz)) %>%
+        LinearScaleTicks(xrng, gp = gpar(fontsize = Style_TickFontSz),
+            brTrans =
+                if (noXLabels)
+                    function(x) rep(" ", length(x))
+                else identity) %>%
         LinearScaleTicks(
             yrng,
             side = "y", n = 4,
@@ -146,13 +151,14 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         future_pmap(
             list(types, ylim, typeLabs),
             function(col, ylim, lab) {
-                pmap(list(data, data_avg, names(data)),
+                pmap(list(data, data_avg, names(data), c(rep(TRUE, length(data) - 1), FALSE)),
                     ~PlotLC(.x, .y,
                         MJD, !!sym(col),
                         xrng = xlim, yrng = ylim,
                         group = Group,
                         ylab = glue(lab),
-                        isTex = TRUE)) %>%
+                        isTex = TRUE,
+                        noXLabels = ..4)) %>%
                 GGPlotPanelLabs(
                     labels = letters[seq_len(length(data))],
                     hjust = 3, vjust = 2,
