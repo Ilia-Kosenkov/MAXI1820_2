@@ -110,6 +110,7 @@ PlotAsSpectra <- function(data,
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
+    bndOrder <- Bands %>% pull(Band)
     avgData <- ReadAllAvgData(
             pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)") %>%
         bind_rows %>%
@@ -125,15 +126,27 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         mutate(Group = -Star) %>%
         mutate(Star = as.factor(Star))
 
+
     avgFData <- AverageFieldStars() %>%
         map2(names(.), ~ mutate(.x, Band = .y)) %>%
         bind_rows %>%
         inner_join(select(Bands, Band, ID, WL, Freq), by = "Band") %>%
         mutate(Group = 0L)
 
-    data <- bind_rows(avgData, fData, avgFData) %>%
-        mutate(Group = as.factor(Group))
+    #data <- bind_rows(avgData, fData, avgFData) %>%
+        #mutate(Group = as.factor(Group))
 
+    data2 <- ReadAllAvgData(
+            pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder]
+    field <- AverageFieldStars()[bndOrder]
+
+    data <- data2 %>% SubtractISM(field) %>%
+        bind_rows %>%
+        inner_join(select(Bands, Band, ID, Freq, WL), by = "Band") %>%
+        mutate(Group =
+            forcats::fct_relabel(Group, ~as.character(as.numeric(.) + 1L)))
+
+    #stop()
     cols <- c("P", "A")
     labs <- c("$P_{BVR}$ (\\%)", "$\\theta_{BVR}$ (deg)")
 
@@ -143,7 +156,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     future_pwalk(list(cols, labs, seq_along(cols)),
         function(x, y, i) {
 
-            fPath <- file.path(drPath, glue("spectra_{x}.tex"))
+            fPath <- file.path(drPath, glue("spectra_subtr_{x}.tex"))
 
             tikz(fPath,
                 width = Style_WidthWideInch,
