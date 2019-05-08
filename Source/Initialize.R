@@ -30,6 +30,7 @@
     library(magrittr)
     library(rlang)
     library(stringr)
+    library(tidyselect)
 
     library(future)
     library(furrr)
@@ -47,6 +48,9 @@
     library(fs)
     library(assertthat)
     library(tictoc)
+
+    library(vctrs)
+    library(zeallot)
 
 }
 

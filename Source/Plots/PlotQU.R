@@ -153,7 +153,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     field <- AverageFieldStars()[bndOrder]
 
     data <- dt %>%
-        #SubtractISM(field) %>%                        # Comment for normal plot
+        SubtractISM(field) %>%                        # Comment for normal plot
         bind_rows %>%
         inner_join(select(Bands, Band, ID), by = "Band") %>%
         mutate(ID = as.factor(ID)) %>%
@@ -162,7 +162,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
 
     plt <- data %>% PlotQU(Px, Py,
             group = ID,
-            #plotGrid = TRUE,                          # Comment for normal plot
+            plotGrid = TRUE,                          # Comment for normal plot
             isTex = TRUE)# %>%
         #GGPlotPanelLabs("d", hjust = 3, vjust = 2,    # Comment for normal plot
             #gp = gpar(fontsize = Style_LabelFontSz))  # Comment for normal plot
@@ -170,7 +170,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     drPath <- fs::path("Output", "Plots") %T>% (fs::dir_create)
 
     fPath <- fs::path(drPath, "QU_avg" %&%
-    #"_intr" %&%                                       # Comment for normal plot
+    "_intr" %&%                                       # Comment for normal plot
     ".tex")
 
     tikz(fPath, width = Style_WidthStdInch, height = Style_HeightStdInch,

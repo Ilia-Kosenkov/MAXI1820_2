@@ -81,7 +81,7 @@ PlotAsSpectra <- function(data,
         range %>% Expand(factor = 0.12)
 
     yrng <- GetRange(data, col_min = !!ymin, col_max = !!ymax) %>%
-        Expand(factor = 0.06, direction = c(2, 1))
+        Expand(factor = 0.06, direction = c(2, 2))
 
 
     bands <- data %>% pull(Band) %>% unique
@@ -170,7 +170,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
                         xlab = "$\\lambda$ (\\AA)",
                         ylab = y) %>%
                     GGPlotPanelLabs(
-                        letters[i], hjust = 3, vjust = 2,
+                        letters[i], hjust = 5, vjust = 2,
                         gp = gpar(fontsize = Style_LabelFontSz)) %>%
                     GGPlot2GrobEx %>%
                     GrobMarginSet(
