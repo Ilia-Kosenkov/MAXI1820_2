@@ -78,7 +78,7 @@ PlotAsSpectra <- function(data,
         geom_errorbar(size = Style_LineSize, width = 0)
 
     xrng <- data %>% pull(!!x) %>%
-        range %>% Expand(factor = 0.12)
+        range %>% Expand(factor = 0.12, direction = c(1, 1.75))
 
     yrng <- GetRange(data, col_min = !!ymin, col_max = !!ymax) %>%
         Expand(factor = 0.06, direction = c(2, 2))
@@ -86,6 +86,13 @@ PlotAsSpectra <- function(data,
 
     bands <- data %>% pull(Band) %>% unique
 
+    data2 <- data %>%
+        filter(Band == last(bands)) %>%
+        select(!!x, !!y) %>%
+        mutate(Id = row_number())
+
+    print(data2)
+    print(diff(range(xrng)))
     wl <- bands %>%
         map_dbl(~data %>% filter(Band == .x) %>% slice(1) %>% pull(WL))
 
@@ -95,7 +102,13 @@ PlotAsSpectra <- function(data,
         xlab(xlab) +
         ylab(ylab) +
         GGCustomTextAnnotation(bands, wl, - Inf, vjust = -0.3, hjust = 0.6,
-            gp = gpar(fontsize = Style_LabelFontSz))
+            gp = gpar(fontsize = Style_LabelFontSz)) +
+        geom_text(aes(x = !!x, y = !!y, label = Id),
+                  data2,
+                  inherit.aes = FALSE,
+                  position = position_nudge(x = 0.05 * diff(range(xrng))),
+                  size = 7)
+
 
     p %>%
         LinearScaleTicks(
@@ -153,7 +166,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     drPath <- fs::path("Output", "Plots") %T>% (fs::dir_create)
 
 
-    future_pwalk(list(cols, labs, seq_along(cols)),
+    future_pmap(list(cols, labs, seq_along(cols)),
         function(x, y, i) {
 
             fPath <- file.path(drPath, glue("spectra_subtr_{x}.tex"))

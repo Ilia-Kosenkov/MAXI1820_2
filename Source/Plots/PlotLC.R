@@ -149,8 +149,8 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
 
     grobs <-
         future_pmap(
-            list(types, ylim, typeLabs),
-            function(col, ylim, lab) {
+            list(types, ylim, typeLabs, c(0, 3)),
+            function(col, ylim, lab, offset) {
                 pmap(list(data, data_avg, names(data), c(rep(TRUE, length(data) - 1), FALSE)),
                     ~PlotLC(.x, .y,
                         MJD, !!sym(col),
@@ -160,7 +160,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
                         isTex = TRUE,
                         noXLabels = ..4)) %>%
                 GGPlotPanelLabs(
-                    labels = letters[seq_len(length(data))],
+                    labels = letters[seq_len(length(data)) + offset],
                     hjust = 3, vjust = 2,
                     gp = gpar(fontsize = Style_LabelFontSz))
             }, .progress = TRUE)

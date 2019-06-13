@@ -40,13 +40,13 @@ AverageBy <- function(data, bandInfo, by = 1, by_obs = NA) {
             mutate(A_min = A - SG_A, A_max = A + SG_A)) %>%
         bind_rows %>%
         arrange(JD) %>%
-        mutate(MJD = JD - 2400000.5) %>%
-        select(JD, MJD,
-               P, SG, P_min, P_max,
-               Px, Px_min, Px_max,
-               Py, Py_min, Py_max,
-               A, SG_A, A_min, A_max,
-               Cov, N, Ratio, Itt)
+        mutate(MJD = JD - 2400000.5) #%>%
+        #select(JD, MJD,
+               #P, SG, P_min, P_max,
+               #Px, Px_min, Px_max,
+               #Py, Py_min, Py_max,
+               #A, SG_A, A_min, A_max,
+               #Cov, N, Ratio, Itt)
 }
 
 #if (get0("ShouldRun", ifnotfound = FALSE)) {

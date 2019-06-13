@@ -49,8 +49,8 @@
     library(assertthat)
     library(tictoc)
 
-    library(vctrs)
-    library(zeallot)
+    #library(vctrs)
+    #library(zeallot)
 
 }
 
@@ -197,9 +197,9 @@ if (exists("ShouldRun", envir = .GlobalEnv) &&
     if (length(args) != length(topology) || !all(args == topology)) {
         args %>% map(function(sz) {
             if (sz == 1L)
-                return(tweak(sequential))
+                return(tweak(future::sequential))
             else
-                return(tweak(cluster, workers = sz))
+                return(tweak(future::cluster, workers = sz))
             }) %>% plan
     }
 

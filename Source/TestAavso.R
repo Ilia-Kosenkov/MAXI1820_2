@@ -35,31 +35,75 @@ TestAavso <- function(dir = fs::path("Input", "Temp", "Raw")) {
         mutate(Type = factor(case_when(!!!selector),
             c("hard-1", "hard-2", "soft", "trans", "unobs")))
 
-    p <- data %>%
-        ggplot(aes(
-            x = MJD,
-            y = Mag,
-            ymin = Mag - Err,
-            ymax = Mag + Err,
-            color = Type,
-            shape = Type
-        )) +
-        geom_point(size = 2L) + geom_linerange(size = 0.5) +
-        scale_y_reverse() +
-        facet_wrap(~Band, ncol = 1) +
-        DefaultTheme() +
-        scale_shape_manual(values = c(15, 16, 18, 17, 4)) +
-        scale_color_manual(
-            values = c(scales::hue_pal()(4), "#000000"),
-            limits = c("hard-1", "hard-2", "soft", "trans", "unobs")) +
-        xlim(c(58184.56, 58427.26))
+    #p <- data %>%
+        #ggplot(aes(
+            #x = MJD,
+            #y = Mag,
+            #ymin = Mag - Err,
+            #ymax = Mag + Err,
+            #color = Type,
+            #shape = Type
+        #)) +
+        #geom_point(size = 2L) + geom_linerange(size = 0.5) +
+        #scale_y_reverse() +
+        #facet_wrap(~Band, ncol = 1) +
+        #DefaultTheme() +
+        #scale_shape_manual(values = c(15, 16, 18, 17, 4)) +
+        #scale_color_manual(
+            #values = c(scales::hue_pal()(4), "#000000"),
+            #limits = c("hard-1", "hard-2", "soft", "trans", "unobs")) +
+        #xlim(c(58184.56, 58427.26))
 
-    p
+    #p
+}
+
+plot_aavso <- function(data) {
+    temp <- data %>% filter(Band == "V") %>% FilterRange(MJD, c(58275, 58300))
+    coefs <- lm(Mag ~ MJD, temp)$coefficients
+    mdl <- function(x) coefs[1] + x * coefs[2]
+
+    temp %<>% mutate(CleanMag = Mag - mdl(MJD))
+
+    w <- 2 * pi * seq(1e-8, 9, by = 0.001)
+
+    prdg <- temp %>% LSAPeriodogramEx(MJD, CleanMag, w)
+
+    plts <- list(
+            P0 = temp %>%
+                ggplot(aes(x = MJD, y = Mag, ymin = Mag - Err, ymax = Mag + Err, col = Type, shape = Type)) +
+                geom_pointrange() + scale_y_reverse(),
+            P1 = temp %>%
+                ggplot(aes(x = MJD, y = CleanMag, ymin = CleanMag - Err, ymax = CleanMag + Err, col = Type, shape = Type)) +
+                geom_pointrange() + scale_y_reverse(),
+            P2 = prdg %>%
+                ggplot(aes(x = F, y = PSD)) + geom_line() + DefaultTheme()) 
+
+    topPrdg <- prdg %>% arrange(desc(PSD))
+
+    detection <- topPrdg %>% slice(5)
+
+    print(topPrdg, n = 50)
+
+    fit <- tibble(x = seq(0, 2, length.out = 200), y = as.numeric(detection$Amplitude) * cos(2 * pi * x))
+
+    plts <-
+        append(plts, list(P3 = temp %>%
+               mutate(MJDF = (MJD + as.numeric(detection$TCSPhase)) / as.numeric(detection$P)) %>%
+                mutate(MJDF = MJDF %% 1) %>%
+                bind_rows(mutate(., MJDF = MJDF + 1)) %>% 
+                ggplot(aes(x = MJDF, y = CleanMag, ymin = CleanMag - Err, ymax = CleanMag + Err)) +
+                geom_pointrange(shape = 20) + xlim(c(0, 2)) +
+                geom_line(aes(x, y), data = fit, inherit.aes = FALSE, size = 2, col = "red")))
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
-    dir <- fs::path("Output", "TestColors") %T>% (fs::dir_create)
-    pdf(fs::path(dir, "test_aavso.pdf"),
-        width = 7, height = 5.33, onefile = TRUE)
-    tryCatch(print(TestAavso()), finally = dev.off())
+
+    if (!exists("aavso_data"))
+        aavso_data <- TestAavso()
+    #dir <- fs::path("Output", "TestColors") %T>% (fs::dir_create)
+    #pdf(fs::path(dir, "test_aavso.pdf"),
+        #width = 7, height = 5.33, onefile = TRUE)
+    #tryCatch(print(TestAavso()), finally = dev.off())
+
+    plot_aavso(aavso_data) %>% print
 }

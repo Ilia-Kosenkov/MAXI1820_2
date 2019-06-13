@@ -60,4 +60,18 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
                         "%8d", "%10.2f", "%8d")), .progress = TRUE)
 
     toc()
+
+    # Fast folding method
+
+    #p <- data_2$R %>%
+        #AverageBy(Bands %>% filter(Band == "R"), by = 1, by_obs = 16) %>%
+        #mutate(MJDF = MJD / (16.6 / 24)) %>%
+        #mutate(MJDF = MJDF %% 1) %>%
+        #filter(P < 1.2, SG < 0.75) %>%
+        #ggplot(aes(x = MJDF)) +
+        #geom_pointrange(aes(y = Px, ymin = Px - SG, ymax = Px + SG), col = "darkorange") +
+        #geom_pointrange(aes(y = Py, ymin = Py - SG, ymax = Py + SG), col = "darkblue", shape = 15) +
+        #geom_pointrange(aes(y = P + 1, ymin = P + 1 - SG, ymax = P + 1 + SG), shape = 17) + xlim(c(0, 1))
+
+    #print(p)
 }

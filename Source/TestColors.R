@@ -95,6 +95,8 @@ TestColors <- function(bandInfo = Bands) {
     data %<>%
         map(mutate, Type = as.factor(case_when(!!!selector)))
 
+    assign("COLORS", data, envir = .GlobalEnv)
+
     plots <- list(data %>% map2(names(data), ~ mutate(.x, Band = !!.y)) %>%
         bind_rows %>%
         mutate(Band = factor(Band, levels = bNames)) %>%
