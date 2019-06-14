@@ -153,7 +153,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     field <- AverageFieldStars()[bndOrder]
 
     data <- dt %>%
-        SubtractISM(field) %>%                        # Comment for normal plot
+        SubtractISM(field, .propagate_errors = FALSE) %>%                        # Comment for normal plot
         bind_rows %>%
         inner_join(select(Bands, Band, ID), by = "Band") %>%
         mutate(ID = as.factor(ID)) %>%

@@ -20,7 +20,7 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-SubtractISM <- function(data, ism) {
+SubtractISM <- function(data, ism, .propagate_errors = TRUE) {
     bnds <- names(data)
 
     bnds %>%
@@ -29,8 +29,13 @@ SubtractISM <- function(data, ism) {
         future_map(function(x) {
             x$data %>%
                 mutate(Px = Px - x$ism$Px,
-                       Py = Py - x$ism$Py,
-                       SG = sqrt(SG ^ 2 + x$ism$SG ^ 2)) %>%
+                       Py = Py - x$ism$Py) %>% {
+                        if (.propagate_errors)
+                            mutate(.,
+                                SG = sqrt(SG ^ 2 + x$ism$SG ^ 2))#,
+                                #Q = map(Q, ~sqrt(.x ^ 2 + x$ism$Q[[1]]^2)))
+                           else .
+                       } %>%
                 CalculatePolFromQU
         })
 }

@@ -32,5 +32,6 @@ ReadAllAvgData <- function(
         bind_rows %>%
         SplitByGroups(Band, .names = Band) %>%
         map(arrange, MJD) %>%
-        map(mutate, Group = as.factor(Group))
+        map(mutate, Group = as_factor(Group)) %>%
+        map(nest_input)
 }

@@ -49,8 +49,8 @@
     library(assertthat)
     library(tictoc)
 
-    #library(vctrs)
-    #library(zeallot)
+    library(vctrs)
+    library(zeallot)
 
 }
 

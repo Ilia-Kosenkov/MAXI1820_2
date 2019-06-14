@@ -91,8 +91,6 @@ PlotAsSpectra <- function(data,
         select(!!x, !!y) %>%
         mutate(Id = row_number())
 
-    print(data2)
-    print(diff(range(xrng)))
     wl <- bands %>%
         map_dbl(~data %>% filter(Band == .x) %>% slice(1) %>% pull(WL))
 
@@ -153,7 +151,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
             pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder]
     field <- AverageFieldStars()[bndOrder]
 
-    data <- data2 %>% SubtractISM(field) %>%
+    data <- data2 %>% SubtractISM(field, .propagate_errors = FALSE) %>%
         bind_rows %>%
         inner_join(select(Bands, Band, ID, Freq, WL), by = "Band") %>%
         mutate(Group =
