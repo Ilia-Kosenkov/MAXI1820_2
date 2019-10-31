@@ -20,36 +20,37 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-SplitByGroups <- function(.data, ..., .names) {
-    if (!missing(...))
-        .data <- group_by(.data, ...)
+SplitByGroups <- function(.data, ..., .names = NULL) {
+    lifecycle::deprecate_stop("0.0", "SplitByGroups()", "dplyr::group_split()")
+    #if (!missing(...))
+        #.data <- group_by(.data, ...)
 
-    .names <- enquo(.names)
+    #.names <- enquo(.names)
 
-    result <- nest(.data, .key = "data__")  %>%
-        select(data__, everything())
-    nms <- head(names(result), -1)
-    result <- result %>% pmap(function(...) {
-        args <- list(...)
-        reduce2(args[-1], names(args[-1]),
-            function(init, col, nm) {
-                if (is.factor(extract2(.data, nm))) {
-                    levels <- levels(extract2(.data, nm))
-                    vals <- factor(levels[col], levels)
+    #result <- nest(.data, .key = "data__")  %>%
+        #select(data__, everything())
+    #nms <- head(names(result), -1)
+    #result <- result %>% pmap(function(...) {
+        #args <- list(...)
+        #reduce2(args[-1], names(args[-1]),
+            #function(init, col, nm) {
+                #if (is.factor(extract2(.data, nm))) {
+                    #levels <- levels(extract2(.data, nm))
+                    #vals <- factor(levels[col], levels)
 
-                    mutate(init, !!nm := vals)
+                    #mutate(init, !!nm := vals)
 
-                }
-                else
-                    mutate(init, !!nm := !!col)
-            },
-            .init = ..1)
-    })
+                #}
+                #else
+                    #mutate(init, !!nm := !!col)
+            #},
+            #.init = ..1)
+    #})
 
-    if (!quo_is_missing(.names)) {
-        names <- result %>% map(~head(pull(.x, !!.names), 1))
-        result <- set_names(result, names)
-    }
+    #if (!quo_is_missing(.names)) {
+        #names <- result %>% map(~head(pull(.x, !!.names), 1))
+        #result <- set_names(result, names)
+    #}
 
-    return(result)
+    #return(result)
 }

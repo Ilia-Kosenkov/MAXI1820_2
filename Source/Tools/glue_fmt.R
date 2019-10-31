@@ -23,21 +23,19 @@
 # ADOPTED FROM [glue] package; vignettes
 
 .sprintf_transformer <- function(text, envir) {
-    m <- regexpr(":%.+$", text)
-    if (m != -1) {
-        format <- substring(regmatches(text, m), 2)
-        regmatches(text, m) <- ""
-        res <- eval(parse(text = text, keep.source = FALSE), envir)
-        do.call(sprintf, list(glue("{format}"), res))
-    } else {
-        eval(parse(text = text, keep.source = FALSE), envir)
-    }
+    #m <- regexpr(":%.+$", text)
+    #if (m != -1) {
+        #format <- substring(regmatches(text, m), 2)
+        #regmatches(text, m) <- ""
+        #res <- eval(parse(text = text, keep.source = FALSE), envir)
+        #do.call(sprintf, list(glue("{format}"), res))
+    #} else {
+        #eval(parse(text = text, keep.source = FALSE), envir)
+    #}
+    lifecycle::deprecate_stop("0.0", ".sprintf_transformer()")
 }
 
-glue_fmt <- function(...,  .envir = parent.frame()) {
-    glue(..., .envir = .envir, .transformer = .sprintf_transformer)
-}
-
-if (get0("ShouldRun", ifnotfound = FALSE)) {
-    glue_fmt("{pi:%f}") %>% print
+glue_fmt <- function(..., .envir = parent.frame()) {
+    lifecycle::deprecate_warn("0.0", "glue_fmt()", "RLibs::glue_fmt()")
+    RLibs::glue_fmt(..., .envir = .envir)
 }
