@@ -92,9 +92,18 @@ PlotQU <- function(data,
                 alpha = Style_AlphaBackground, size = Style_LineSize)
     }
     p <- p +
-        geom_point(size = Style_SymbolSize) +
         geom_errorbarh(size = Style_ErrorBarSize, height = 0) +
         geom_errorbar(size = Style_ErrorBarSize, width = 0) +
+        geom_point(size = Style_SymbolSize) +
+        ### Text labels
+        geom_text(
+            aes(x = !!q + cc(-1, 2, 0.5, -1) * 0.02,
+                y = !!u + cc(0, 0, 2, 1) * 0.02,
+                label = !!shape_group),
+            size = grid::convertX(grid::unit(Style_LabelFontSz, "pt"), "mm", TRUE),
+            col = "#000000",
+            data = filter(data, Band == "B")) +
+        ###
         scale_color_manual(
             limits = Style_GroupsBands,
             values = Style_GroupColorsBands,
@@ -122,7 +131,7 @@ PlotQU <- function(data,
             inherit.aes = FALSE,
             size = Style_LineSize,
             arrow = arrow(length = Style_ArrowLength)) +
-        DefaultTheme(
+        theme_scientific(
             textSz = Style_TickFontSz,
             titleSz = Style_LabelFontSz) +
         coord_cartesian(clip = "off",
@@ -188,5 +197,5 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
                 GrobPlot
         }, finally = dev.off())
 
-    tex_2_pdf(fPath, verbose = TRUE)
+    tex_2_pdf(fPath, verbose = FALSE)
 }
