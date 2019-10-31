@@ -21,16 +21,18 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ReadAllAvgData <- function(
-    dirPath = file.path("Output", "Data"),
+    dir_path = fs::path("Output", "Data"),
     pattern = "pol_avg_(?<id>[0-9]+)_(?<band>\\w)") {
 
-    files <- dir(dirPath, full.names = TRUE) %>%
+    files <- fs::dir_ls(dir_path) %>%
         StrExtractNamedGroups(pattern) %>%
         select(Src, id, band) %>%
         future_pmap(~read_table2(..1, col_types = cols(), comment = "#") %>%
             mutate(Group = !!..2, Band = !!..3)) %>%
         bind_rows %>%
-        SplitByGroups(Band, .names = Band) %>%
+        #SplitByGroups(Band, .names = Band) %>%
+        group_split(Band) %>%
+        set_names(map_chr(., ~ pull(.x, Band)[1])) %>%
         map(arrange, MJD) %>%
         map(mutate, Group = as_factor(Group)) %>%
         map(nest_input)

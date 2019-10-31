@@ -37,11 +37,12 @@ nest_input <- function(data) {
 
     matrix_cols <- detections %>%
         reduce(rbind) %>%
-        `colnames<-`(vec_c("Source", "Column", "N", "M")) %>%
+        `colnames<-`(cc("Source", "Column", "N", "M")) %>%
         as_tibble %>%
         mutate_at(vars(N, M), parse_integer) %>%
         group_by(Column) %>%
-        Nest %>%
+    #Nest %>%
+        nest %>%
         mutate(data = map2(data, Column, ~ mutate(.x, Column = .y))) %>%
         pull(data) %>%
         map(arrange, M, N)

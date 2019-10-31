@@ -50,7 +50,7 @@ PlotQU <- function(data,
 
     arrowData <- data %>%
         select(!!q, !!u, !!group) %>%
-        SplitByGroups(!!group) %>%
+        group_split({{ group }}) %>%
         map(ModifySegemnts, x = !!q, y = !!u, shift = subtr) %>%
         bind_rows %>%
         mutate(!!quo_squash(group) := as.factor(!!group))
@@ -146,7 +146,7 @@ PlotQU <- function(data,
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
 #if (FALSE) {
-    grps <- c(0, 1, 2, 3)
+    grps <- cc(0, 1, 2, 3)
     bndOrder <- Bands %>% pull(Band)
     dt <- ReadAllAvgData(
             pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder]
@@ -156,7 +156,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         SubtractISM(field, .propagate_errors = FALSE) %>%                        # Comment for normal plot
         bind_rows %>%
         inner_join(select(Bands, Band, ID), by = "Band") %>%
-        mutate(ID = as.factor(ID)) %>%
+        mutate(ID = as_factor(ID)) %>%
         filter(Group %in% grps)
 
 
@@ -170,8 +170,8 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     drPath <- fs::path("Output", "Plots") %T>% (fs::dir_create)
 
     fPath <- fs::path(drPath, "QU_avg" %&%
-    "_intr" %&%                                       # Comment for normal plot
-    ".tex")
+        "_intr" %&%                                     # Comment for normal plot
+        ".tex")
 
     tikz(fPath, width = Style_WidthStdInch, height = Style_HeightStdInch,
         standAlone = TRUE)
@@ -184,5 +184,5 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
                 GrobPlot
         }, finally = dev.off())
 
-    Tex2Pdf(fPath, verbose = TRUE)
+    tex_2_pdf(fPath, verbose = TRUE)
 }
