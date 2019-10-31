@@ -21,8 +21,6 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 desc_ex <- function(f) {
-    if (rlang::is_function(f) || rlang::is_formula(f))
-        return(function(x, ...) desc(f(x, ...)))
-
-    return(desc(f))
+    lifecycle::deprecate_warn("0.0", "desc_ex()", "RLibs::desc_ex()")
+    RLibs::desc_ex(f)
 }

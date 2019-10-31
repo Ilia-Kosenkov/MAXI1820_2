@@ -22,6 +22,6 @@
 
 
 order_by_ex <- function(.x, .f = identity, ...) {
-    sorter <- purrr::compose(base::xtfrm, purrr::as_mapper(.f, ...))
-    .x[base::order(purrr::map_dbl(.x, sorter))]
+    lifecycle::deprecate_warn("0.0", "order_by_ex", "RLibs::order_by_ex()")
+    RLibs::order_by_ex(.x, .f, ...)
 }

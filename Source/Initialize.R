@@ -183,10 +183,12 @@ if (exists("ShouldRun", envir = .GlobalEnv) &&
         #wrks <- wrks[-length(wrks)]
 
     #wrks
+    lifecycle::deprecate_warn("0.0", ".GetTopology()", "RLibs::get_topology()")
     RLibs::get_topology()
 }
 
 .PlanCL <- function(...) {
+    lifecycle::deprecate_warn("0.0", ".PlanCL()", "RLibs::plan_cluster()")
     RLibs::plan_cluster(...)
     #args <- list(...) %>%
         #map_int(as_integer)
