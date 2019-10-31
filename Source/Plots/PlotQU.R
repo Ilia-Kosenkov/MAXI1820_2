@@ -21,7 +21,9 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 PlotQU <- function(data,
-        q, u, qmin, qmax, umin, umax, group,
+        q, u, qmin, qmax, umin, umax,
+        group,
+        shape_group = Group,
         isTex = FALSE, plotGrid = FALSE) {
     q <- ensym(q)
     u <- ensym(u)
@@ -30,6 +32,7 @@ PlotQU <- function(data,
     umin <- enquo(umin)
     umax <- enquo(umax)
     group <- ensym(group)
+    shape_group <- quo(fct_relabel(!!enquo(shape_group), ~ as.character(as.numeric(.) + 1L)))
 
     q_end <- sym(paste0(q, "_end"))
     u_end <- sym(paste0(u, "_end"))
@@ -53,7 +56,7 @@ PlotQU <- function(data,
         group_split({{ group }}) %>%
         map(ModifySegemnts, x = !!q, y = !!u, shift = subtr) %>%
         bind_rows %>%
-        mutate(!!quo_squash(group) := as.factor(!!group))
+        mutate(!!quo_squash(group) := as_factor(!!group))
 
     p <- ggplot(data, aes(
         x = !!q, y = !!u,
@@ -61,30 +64,30 @@ PlotQU <- function(data,
         ymin = !!umin, ymax = !!umax,
         col = !!group,
         fill = !!group,
-        shape = !!group))
+        shape = !! shape_group))
 
     xrng <- GetRange(
         data,
         col = !!q, col_min = !!qmin, col_max = !!qmax) %>%
-        Expand(factor = 0.06)
+        expand_interval(factor = 0.06)
 
     yrng <- GetRange(
         data,
         col = !!u, col_min = !!umin, col_max = !!umax) %>%
-        Expand(factor = 0.06)
+        expand_interval(factor = 0.06)
 
     width <- max(diff(yrng), diff(xrng))
 
-    xrng %<>% Expand(factor = width / diff(xrng) - 1)
-    yrng %<>% Expand(factor = width / diff(yrng) - 1)
+    xrng %<>% expand_interval(factor = width / diff(xrng) - 1)
+    yrng %<>% expand_interval(factor = width / diff(yrng) - 1)
 
     if (plotGrid) {
         p <- p +
             geom_segment(
                 aes(x = x, xend = xend, y = y, yend = yend),
                 tibble(
-                    x = c(xrng[1], 0), xend = c(xrng[2], 0),
-                    y = c(0, yrng[1]), yend = c(0, yrng[2])),
+                    x = cc(xrng[1], 0), xend = cc(xrng[2], 0),
+                    y = cc(0, yrng[1]), yend = cc(0, yrng[2])),
                 inherit.aes = FALSE,
                 alpha = Style_AlphaBackground, size = Style_LineSize)
     }
@@ -101,8 +104,9 @@ PlotQU <- function(data,
             values = Style_GroupColorsBands,
             guide = FALSE) +
         scale_shape_manual(
-            limits = Style_GroupsBands,
-            values = Style_GroupShapesBands,
+            #limits = Style_GroupsBands,
+            limits = Style_GroupsCombined,
+            values = Style_GC_Shapes,
             guide = FALSE) +
         scale_linetype_manual(
             limits = Style_GroupsBands,
@@ -156,10 +160,10 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         SubtractISM(field, .propagate_errors = FALSE) %>%                        # Comment for normal plot
         bind_rows %>%
         inner_join(select(Bands, Band, ID), by = "Band") %>%
-        mutate(ID = as_factor(ID)) %>%
+        mutate_at(vars(ID, Group, Band), as_factor) %>%
         filter(Group %in% grps)
 
-
+    
     plt <- data %>% PlotQU(Px, Py,
             group = ID,
             plotGrid = TRUE,                          # Comment for normal plot
