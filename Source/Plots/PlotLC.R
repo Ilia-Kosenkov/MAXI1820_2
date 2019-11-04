@@ -92,6 +92,7 @@ PlotLC <- function(data, avg_data,
             size = Style_ErrorBarSizeLarge) +
         DefaultTheme(textSz = Style_TickFontSz, titleSz = Style_LabelFontSz) +
         coord_cartesian(xlim = xrng, ylim = yrng,
+                        clip = "on",
                         expand = FALSE)
 
     toc()
@@ -127,7 +128,8 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     grps <- c(0, 1, 2, 3)
     bndOrder <- Bands %>% pull(Band)
     data <- ReadAllAvgData()[bndOrder] %>%
-        map(filter, Group %in% grps)
+        map(filter, Group %in% grps) %>%
+        map(filter, SG_A <= 10, SG <= 0.2)#  %T>% map(~print(., n = vec_size(.)))
 
     data_avg <- ReadAllAvgData(
         pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder] %>%
@@ -139,7 +141,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     xlim <- data %>%
         map(pull, MJD) %>%
         range %>%
-        Expand(factor = 0.06)
+        expand_interval(factor = 0.06)
 
     ylim <- types %>%
         map(GetMinMaxNames) %>%
@@ -186,7 +188,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
                      GrobPlot
             }, finally = dev.off())
 
-            Tex2Pdf(lPth, verbose = TRUE)
+            tex_2_pdf(lPth)
         }, .progress = TRUE)
     toc()
     toc()
