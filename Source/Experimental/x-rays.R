@@ -1,7 +1,9 @@
 `%vec_in%` <- vctrs::vec_in
 
-read_x_rays <- function(path = fs::path("Input", "glcbin24.0h_regbg_v1.csv")) {
-    levels <- cc("2-20 keV" = "1", "2-4 keV" = "2", "4-10 keV" = "3", "10-20 keV" = "4")
+read_x_rays <- function(
+    path = fs::path("Input", "glcbin24.0h_regbg_v1.csv"),
+    path_bat = fs::path("Input", "MAXIJ1820p070.lc.txt")) {
+    levels <- cc("2-20" = "1", "2-4" = "2", "4-10" = "3", "10-20" = "4")
     path %>%
         read_csv(col_names = FALSE, col_types = cols()) %>%
         set_names(cc("MJD", "MJD_start", "MJD_end",
@@ -16,10 +18,21 @@ read_x_rays <- function(path = fs::path("Input", "glcbin24.0h_regbg_v1.csv")) {
         } %>%
         pivot_longer(starts_with("C"), names_to = "BandId", names_prefix = "C_") %>%
         mutate(BandId = as_factor(BandId) %>%
-               fct_recode(!!!levels)) %>%
+               fct_recode(!!!levels) %>%
+               fct_get) %>%
         mutate(Data = map_dbl(value, 1L), Err = map_dbl(value, 2L)) %>%
-        select(-value) %>%
-        filter_range(MJD, cc(58190, 58450))
+        select(-value, -MJD_start, -MJD_end) %>%
+        filter_range(MJD, cc(58190, 58450)) -> maxi_data
+
+    path_bat %>%
+        read_table(col_names = FALSE, col_types = cols(), comment = "#") %>%
+        set_names(cc("MJD", "Data", "Err", "Year", "Day", "StatErr", "SysErr", "Flag", "Expo", "Coded", "Dithread")) %>%
+        select("MJD", "Data", "Err") %>%
+        mutate(BandId = "15-50") -> bat_data
+
+    bind_rows(maxi_data, bat_data) %>%
+        mutate(BandId = as_factor(BandId))
+
 }
 
 transform_x_ray <- function(data, dates = dates_range()) {
@@ -27,12 +40,12 @@ transform_x_ray <- function(data, dates = dates_range()) {
                 "Decoupling" = "1",
                 "Soft" = "2",
                 "Decaying Hard" = "3")
-    lower <- filter(data, BandId == "2-4 keV")
-    upper <- filter(data, BandId == "10-20 keV")
+    lower <- filter(data, BandId == "2-4")
+    upper <- filter(data, BandId == "10-20")
     bind_cols(select(upper, - BandId), transmute(lower, lData = Data, lErr = Err)) %>%
         mutate(Err = abs(Data / lData) * sqrt(Err ^ 2 / Data ^ 2 + lErr ^ 2 / lData ^ 2),
                Data = Data / lData,
-                BandId = "10-20 keV / 2-4 keV") %>%
+                BandId = "10-20 / 2-4") %>%
         select(-starts_with("l")) %>%
         filter(Err < 0.5) %>%
         bind_rows(
@@ -54,7 +67,7 @@ plot_x_ray <- function(data) {
     alpha_pal <- cc(rep(1, 4), 0.5)
     shape_pal <- cc(Style_GC_Shapes[cc(5, 8, 6, 7) - 4], 16)
     data %>%
-        filter(BandId != "10-20 keV / 2-4 keV") %>%
+        filter(BandId != "10-20 / 2-4") %>%
         mutate(BandId = fct_drop(BandId)) %>%
         ggplot(aes(
                 x = MJD, y = Data,
@@ -68,7 +81,10 @@ plot_x_ray <- function(data) {
                 name = NULL, limits = rng,
                 labels = function(x) rep(" ", len(x)),
                 sec.axis = sciplotr:::dup_axis_sci_weak()) +
-            scale_y_log10_sci(name = NULL, sec.axis = sciplotr:::dup_axis_sci_weak()) +
+            scale_y_log10_sci(
+                name = NULL,
+                sec.axis = sciplotr:::dup_axis_sci_weak(),
+                labels = function(x) as.character(RLibs::glue_fmt("{x:%g}"))) +
             scale_color_manual(values = col_pal, drop = FALSE, guide = FALSE) +
             scale_fill_manual(values = col_pal, drop = FALSE, guide = FALSE) +
             scale_alpha_manual(values = alpha_pal, drop = FALSE, guide = FALSE) +
@@ -78,7 +94,7 @@ plot_x_ray <- function(data) {
                 scales = "free_y",
                 panel.labeller = ~letters[.x$Id]) -> plt_1
     data %>%
-        filter(BandId == "10-20 keV / 2-4 keV") %>%
+        filter(BandId == "10-20 / 2-4") %>%
         mutate(BandId = fct_drop(BandId)) %>%
         ggplot(aes(
                     x = MJD, y = Data,
@@ -90,10 +106,15 @@ plot_x_ray <- function(data) {
                 geom_pointrange() +
                 scale_x_sci(sec.axis = sciplotr:::dup_axis_sci_weak()) +
                 scale_y_sci(name = NULL, sec.axis = sciplotr:::dup_axis_sci_weak()) +
-                scale_color_manual(values = col_pal, drop = FALSE) +
-                scale_fill_manual(values = col_pal, drop = FALSE) +
-                scale_shape_manual(values = shape_pal, drop = FALSE) +
-                scale_alpha_manual(values = alpha_pal, drop = FALSE) +
+                scale_color_manual(
+                    values = col_pal, drop = FALSE,
+                    guide = guide_legend(title = NULL)) +
+                scale_fill_manual(values = col_pal, drop = FALSE,
+                    guide = guide_legend(title = NULL)) +
+                scale_shape_manual(values = shape_pal, drop = FALSE,
+                    guide = guide_legend(title = NULL)) +
+                scale_alpha_manual(values = alpha_pal, drop = FALSE,
+                    guide = guide_legend(title = NULL)) +
                 facet_sci(
                     vars(BandId),
                     scales = "free_y",
@@ -101,33 +122,16 @@ plot_x_ray <- function(data) {
     plt_1 %<>%
         postprocess_axes(
             axes_margin = mar_(1 ~ cm, 1 ~ cm, 0 ~ npc, 1 ~ cm),
-            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1 ~ cm)) %>%
-        nullify_borders
+            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1 ~ cm))
 
     plt_2 %<>% postprocess_axes(
             axes_margin = mar_(0 ~ npc, 1 ~ cm, 1 ~ cm, 1 ~ cm),
             strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1 ~ cm),
-            text_margin = mar_(0 ~ npc, 0 ~ npc, 0.75 ~ cm, 0 ~ npc)) %>%
-        nullify_borders
+            text_margin = mar_(0 ~ npc, 0 ~ npc, 0.75 ~ cm, 0 ~ npc))
     gridExtra::arrangeGrob(plt_1, plt_2, ncol = 1, heights = u_(0.66 ~ null, 0.33 ~ null)) -> tbl
-    plt_2 <<- plt_2
-    plt_1 <<- plt_1
-    #gtable::gtable_show_layout(tbl)
-    #gtable::gtable_show_layout(plt_2)
+
     grid.newpage()
-    #grid.draw(plt_2)
     grid.draw(tbl)
-        
-}
-
-nullify_borders <- function(gg) {
-    gg$widths[1] <- u_(0 ~ null)
-    gg$widths[length(gg$widths)] <- u_(0 ~ null)
-
-    gg$heights[1] <- u_(0 ~ null)
-    gg$heights[length(gg$heights)] <- u_(0 ~ null)
-
-    gg
 }
 
 dates_range <- function(pattern = "data_") {
@@ -135,7 +139,7 @@ dates_range <- function(pattern = "data_") {
         map(get0, ifnotfound = NULL) %>%
         map(map, pull, JD) %>%
         map(range) %>%
-        map(subtract, 2400000.5) %>% 
+        map(subtract, 2400000.5) %>%
         enframe(NULL) %>%
         transmute(Group = as_factor(0:3),
                   Lower = map_dbl(value, 1L),
@@ -205,6 +209,6 @@ left_join_condition <- function(left, right, ...,
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
 
-    dates_range() -> dates
-    read_x_rays() %>% transform_x_ray(dates) %>% plot_x_ray
+    #dates_range() -> dates
+    read_x_rays() %>% print# %>% transform_x_ray(dates) %>% plot_x_ray
 }
