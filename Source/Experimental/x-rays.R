@@ -60,26 +60,39 @@ transform_x_ray <- function(data) {
         #mutate(Group = fct_recode(fct_explicit_na(Group, "No data"), !!!levels))
 }
 
-plot_x_ray <- function(data, dates = dates_range()) {
-    dates %<>%
+plot_x_ray <- function(data, dates_input = dates_range()) {
+    dates <- dates_input %>%
         pivot_longer(c(-Group)) %>%
         vec_repeat(each = 2) %>%
         transmute(Group, x = value,
                   y = vec_repeat(cc(0, Inf, Inf, 0), times = n() / 4),
-                  y_hr = vec_repeat(cc(-Inf, Inf, Inf, -Inf), times = n() / 4))
+                  y_hr = vec_repeat(cc(-Inf, Inf, Inf, - Inf), times = n() / 4))
     ### Very-very-very experimental
     require(sciplotr)
     rng <- data %>% pull(MJD) %>% range
     col_pal <- cc(Style_GroupColors[cc(5, 8, 6, 7)], "#000000")
-    alpha_pal <- cc(rep(1, 4), 0.5)
-    shape_pal <- cc(Style_GC_Shapes[cc(5, 8, 6, 7) - 4], 16)
+
+    labels_data <- dates_input %>%
+        transmute(
+                  Label = fct_get(Group),
+                  X = lin_unit(0.5 * (Lower + Upper), rng, u_(0$npc + 1$cm, 1$npc - 1$cm)),
+                  Y = u_(0.5 ~ cm))
+
+    text_grob <- textGrob(labels_data$Label, labels_data$X, labels_data$Y)
+
+    maxi_hr_name <- "HR 10-20 keV/2-4 keV"
+    levels <- cc("2-4", "15-50", "10-20 / 2-4") %>%
+                set_names(cc("MAXI 2-4 keV", "BAT 15-50 keV", maxi_hr_name))
+
+    data %<>% mutate(BandId = fct_recode(BandId,!!!levels))
+    
     data %>%
-        filter(BandId != "10-20 / 2-4") %>%
+        filter(BandId != maxi_hr_name) %>%
         mutate(BandId = fct_drop(BandId)) %>%
         ggplot(aes(
                 x = MJD, y = Data,
                 ymin = Data - Err, ymax = Data + Err)) +
-            coord_sci(xlim = rng) +
+            coord_sci(xlim = rng, clip = "off") +
             theme_sci(
                 facet.lab.x = npc_(0.95)) +
             geom_pointrange() +
@@ -102,7 +115,7 @@ plot_x_ray <- function(data, dates = dates_range()) {
                 scales = "free_y",
                 panel.labeller = ~letters[.x$Id]) -> plt_1
     data %>%
-        filter(BandId == "10-20 / 2-4") %>%
+        filter(BandId == maxi_hr_name) %>%
         mutate(BandId = fct_drop(BandId)) -> hardness_ratio
 
     hardness_ratio %>%
@@ -141,6 +154,13 @@ plot_x_ray <- function(data, dates = dates_range()) {
         postprocess_axes(
             axes_margin = mar_(1 ~ cm, 1 ~ cm, 0 ~ npc, 1 ~ cm),
             strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1 ~ cm))
+
+    pos <- get_grobs_layout(plt_1, "axis-t-1-1")[[1]]
+
+    plt_1 <- gtable::gtable_add_grob(
+            plt_1, text_grob, pos[3], pos[1],
+            clip = "off",
+            name = "top-labels")
 
     plt_2 %<>% postprocess_axes(
             axes_margin = mar_(0 ~ npc, 1 ~ cm, 1 ~ cm, 1 ~ cm),
@@ -223,6 +243,14 @@ left_join_condition <- function(left, right, ...,
     }
 
     bind_cols(left, right)
+}
+
+lin_unit <- function(x0, x, y) {
+    dx <- x[2] - x[1]
+    dy <- y[2] - y[1]
+
+    map(x0, ~ y[1] + dy / dx * (.x - x[1])) -> result
+    exec(grid::unit.c, !!!result)
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
