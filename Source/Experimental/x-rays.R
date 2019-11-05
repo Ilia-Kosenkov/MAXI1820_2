@@ -36,7 +36,7 @@ read_x_rays <- function(
 
 }
 
-transform_x_ray <- function(data) {
+transform_x_ray <- function(data, extra_band = cc("2-4", "15-50")) {
     lower <- filter(data, BandId == "2-4")
     upper <- filter(data, BandId == "10-20")
     bind_cols(select(upper, - BandId), transmute(lower, lData = Data, lErr = Err)) %>%
@@ -47,7 +47,7 @@ transform_x_ray <- function(data) {
         filter(Err < 1) -> hardness_ratio
 
     data %>%
-        filter(BandId %vec_in% cc("2-4", "15-50")) %>%
+        filter(BandId %vec_in% extra_band) %>%
         vec_rbind(hardness_ratio)
 
         #bind_rows(
@@ -80,9 +80,9 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
 
     text_grob <- textGrob(labels_data$Label, labels_data$X, labels_data$Y)
 
-    maxi_hr_name <- "HR 10-20 keV/2-4 keV"
+    maxi_hr_name <- "MAXI HR\n10-20 keV / 2-4 keV"
     levels <- cc("2-4", "15-50", "10-20 / 2-4") %>%
-                set_names(cc("MAXI 2-4 keV", "BAT 15-50 keV", maxi_hr_name))
+                set_names(cc("MAXI 2-4 keV\ncts cm s^-2", "BAT 15-50 keV\ncts cm s^-2", maxi_hr_name))
 
     data %<>% mutate(BandId = fct_recode(BandId,!!!levels))
     
@@ -172,6 +172,71 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
     grid.draw(tbl)
 }
 
+plot_x_ray_hr <- function(data, dates = dates_range()) {
+    col_pal <- cc(Style_GroupColors[cc(5, 8, 6, 7)], "#000000")
+
+
+    data %>%
+        filter(BandId %vec_in% cc("10-20 / 2-4", "2-20")) %>%
+        pivot_wider(names_from = BandId, values_from = c(Data, Err)) -> temp
+
+    temp %>% names %>% str_match("(?:(Data|Err)[^/]*?(/.*$|$))|.*") %>%
+        as_tibble(.name_repair = "minimal") %>%
+        set_names(cc("Source", "MesType", "DataType")) %>%
+        mutate(
+            DataType = case_when(is.na(DataType) ~ DataType, nzchar(DataType) ~ "HR", TRUE ~ "Cts"),
+            MesType = if_else(MesType == "Err", "_err", "")) %>%
+        mutate(Name = if_else(is.na(DataType) | is.na(MesType), Source, paste0(DataType, MesType))) %>%
+        pull(Name) -> new_names
+
+
+    temp %<>%
+        set_names(new_names) %>%
+        filter_range(HR, cc(-0.05, 0.4)) %>%
+        filter_range(Cts, cc(0.1, Inf))
+
+
+    left_join_condition(temp, dates, .x$MJD >= .y$Lower, .x$MJD < .y$Upper) %>%
+        filter(!is.na(Group)) %>%
+        group_by(Group) %>%
+        group_map(~tibble(
+                Group = pull(.y, Group),
+                x = vec_repeat(quantile(cc(.x$HR - .x$HR_err, .x$HR + .x$HR_err), cc(0.025, 0.975)), each = 2L),
+                y = cc(
+                    quantile(cc(.x$Cts - .x$Cts_err, .x$Cts + .x$Cts_err), cc(0.025, 0.975)),
+                    rev(quantile(cc(.x$Cts - .x$Cts_err, .x$Cts + .x$Cts_err), cc(0.025, 0.975)))))) %>%
+        bind_rows -> boxes
+
+    temp %>% 
+        ggplot_sci(aes(
+                x = HR, xmin = HR - HR_err, xmax = HR + HR_err,
+                y = Cts, ymin = Cts - Cts_err, ymax = Cts + Cts_err)) +
+            geom_point() +
+            geom_errorbar() +
+            geom_errorbarh() +
+            geom_polygon(
+                aes(x = x, y = y, group = Group, col = Group),
+                    fill = "#FFFFFF",
+                    size = 1.5,
+                    alpha = 0,
+                    data = boxes, inherit.aes = FALSE) +
+            scale_color_manual(values = col_pal, drop = FALSE) +
+            scale_y_log10_sci(name = "MAXI 2-20 keV, cts cm s^-2",
+                sec.axis = sciplotr:::dup_axis_sci_weak()) +
+            scale_x_sci(name = "MAXI 10-20 keV / 2-4 keV",
+                sec.axis = sciplotr:::dup_axis_sci_weak()) -> plt
+
+    grid.newpage()
+
+    plt %>%
+        postprocess_axes(
+            axes_margin = u_(0.5~cm),
+            strip_margin = NULL,
+            text_margin = u_(1.25 ~ cm)) %>%
+        grid.draw()
+
+}
+
 dates_range <- function(pattern = "data_") {
     paste0(pattern, 0:3) %>%
         map(get0, ifnotfound = NULL) %>%
@@ -179,7 +244,7 @@ dates_range <- function(pattern = "data_") {
         map(range) %>%
         map(subtract, 2400000.5) %>%
         enframe(NULL) %>%
-        transmute(Group = as_factor(cc("BH", "HIM", "Soft", "DH")),
+        transmute(Group = as_factor(cc("BrH", "HIM", "Soft", "DH")),
                   Lower = map_dbl(value, 1L),
                   Upper = map_dbl(value, 2L))
 }
@@ -245,6 +310,7 @@ left_join_condition <- function(left, right, ...,
     bind_cols(left, right)
 }
 
+## TODO: mote to {siplotr}
 lin_unit <- function(x0, x, y) {
     dx <- x[2] - x[1]
     dy <- y[2] - y[1]
@@ -255,5 +321,5 @@ lin_unit <- function(x0, x, y) {
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
 
-    read_x_rays() %>% transform_x_ray() %>% plot_x_ray
+    read_x_rays() %>% transform_x_ray("2-20") %>% plot_x_ray_hr
 }
