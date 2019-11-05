@@ -36,31 +36,37 @@ read_x_rays <- function(
 
 }
 
-transform_x_ray <- function(data, dates = dates_range()) {
-    levels <- c("Rising Hard" = "0",
-                "Decoupling" = "1",
-                "Soft" = "2",
-                "Decaying Hard" = "3")
+transform_x_ray <- function(data) {
     lower <- filter(data, BandId == "2-4")
     upper <- filter(data, BandId == "10-20")
     bind_cols(select(upper, - BandId), transmute(lower, lData = Data, lErr = Err)) %>%
         mutate(Err = abs(Data / lData) * sqrt(Err ^ 2 / Data ^ 2 + lErr ^ 2 / lData ^ 2),
                Data = Data / lData,
-                BandId = "10-20 / 2-4") %>%
+               BandId = as_factor("10-20 / 2-4")) %>%
         select(-starts_with("l")) %>%
-        filter(Err < 0.5) %>%
-        bind_rows(
-            mutate(upper, BandId = fct_get(BandId)),
-            mutate(lower, BandId = fct_get(BandId))) %>%
-        mutate(BandId = as_factor(BandId)) -> result
+        filter(Err < 1) -> hardness_ratio
 
-    left_join_condition(result, dates, .x$MJD >= .y$Lower, .x$MJD <= .y$Upper) %>%
-        select(-Lower, - Upper) %>%
-        mutate(Group = fct_recode(fct_explicit_na(Group, "No data"), !!!levels))
+    data %>%
+        filter(BandId %vec_in% cc("2-4", "15-50")) %>%
+        vec_rbind(hardness_ratio)
+
+        #bind_rows(
+            #mutate(upper, BandId = fct_get(BandId)),
+            #mutate(lower, BandId = fct_get(BandId))) %>%
+        #mutate(BandId = as_factor(BandId)) -> result
+
+    #left_join_condition(result, dates, .x$MJD >= .y$Lower, .x$MJD <= .y$Upper) %>%
+        #select(-Lower, - Upper) %>%
+        #mutate(Group = fct_recode(fct_explicit_na(Group, "No data"), !!!levels))
 }
 
-plot_x_ray <- function(data) {
-
+plot_x_ray <- function(data, dates = dates_range()) {
+    dates %<>%
+        pivot_longer(c(-Group)) %>%
+        vec_repeat(each = 2) %>%
+        transmute(Group, x = value,
+                  y = vec_repeat(cc(0, Inf, Inf, 0), times = n() / 4),
+                  y_hr = vec_repeat(cc(-Inf, Inf, Inf, -Inf), times = n() / 4))
     ### Very-very-very experimental
     require(sciplotr)
     rng <- data %>% pull(MJD) %>% range
@@ -72,12 +78,17 @@ plot_x_ray <- function(data) {
         mutate(BandId = fct_drop(BandId)) %>%
         ggplot(aes(
                 x = MJD, y = Data,
-                ymin = Data - Err, ymax = Data + Err,
-                col = Group, fill = Group, alpha = Group, shape = Group)) +
+                ymin = Data - Err, ymax = Data + Err)) +
             coord_sci(xlim = rng) +
             theme_sci(
-                facet.lab.x = npc_(0.97)) +
+                facet.lab.x = npc_(0.95)) +
             geom_pointrange() +
+            geom_polygon(
+                aes(x, y, fill = Group),
+                alpha = 0.4,
+                show.legend = FALSE,
+                data = dates, inherit.aes = FALSE) +
+            scale_fill_manual(values = col_pal) +
             scale_x_sci(
                 name = NULL, limits = rng,
                 labels = function(x) rep(" ", len(x)),
@@ -86,40 +97,46 @@ plot_x_ray <- function(data) {
                 name = NULL,
                 sec.axis = sciplotr:::dup_axis_sci_weak(),
                 labels = function(x) as.character(RLibs::glue_fmt("{x:%g}"))) +
-            scale_color_manual(values = col_pal, drop = FALSE, guide = FALSE) +
-            scale_fill_manual(values = col_pal, drop = FALSE, guide = FALSE) +
-            scale_alpha_manual(values = alpha_pal, drop = FALSE, guide = FALSE) +
-            scale_shape_manual(values = shape_pal, drop = FALSE, guide = FALSE) +
             facet_sci(
                 vars(BandId),
                 scales = "free_y",
                 panel.labeller = ~letters[.x$Id]) -> plt_1
     data %>%
         filter(BandId == "10-20 / 2-4") %>%
-        mutate(BandId = fct_drop(BandId)) %>%
-        ggplot(aes(
+        mutate(BandId = fct_drop(BandId)) -> hardness_ratio
+
+    hardness_ratio %>%
+        transmute(Lower = Data - Err, Upper = Data + Err) %>%
+        pivot_longer(everything()) %>%
+        summarise(Lower = quantile(value, 0.025), Upper = quantile(value, 0.975)) %>%
+        flatten_dbl -> hr_rng
+
+    hardness_ratio %<>%
+        filter_range(Data, hr_rng) %>%
+        mutate(Upp = Data + Err, Low = Data - Err) %>%
+        Clamp(Upp, hr_rng) %>%
+        Clamp(Low, hr_rng)
+
+    hardness_ratio %>% ggplot(aes(
                     x = MJD, y = Data,
-                    ymin = Data - Err, ymax = Data + Err,
-                    col = Group, fill = Group, shape = Group, alpha = Group)) +
+                    ymin = Low, ymax = Upp)) +
                 coord_sci(xlim = rng) +
                 theme_sci(
-                    facet.lab.x = npc_(0.97)) +
+                    legend.justification = cc(1.25, -0.1),
+                    facet.lab.x = npc_(0.95)) +
                 geom_pointrange() +
+                geom_polygon(
+                        aes(x, y_hr, group = Group, fill = Group),
+                        alpha = 0.4,
+                        data = dates, inherit.aes = FALSE) +
+                scale_fill_manual(values = col_pal, guide = guide_legend(title = "State")) +
                 scale_x_sci(sec.axis = sciplotr:::dup_axis_sci_weak()) +
                 scale_y_sci(name = NULL, sec.axis = sciplotr:::dup_axis_sci_weak()) +
-                scale_color_manual(
-                    values = col_pal, drop = FALSE,
-                    guide = guide_legend(title = NULL)) +
-                scale_fill_manual(values = col_pal, drop = FALSE,
-                    guide = guide_legend(title = NULL)) +
-                scale_shape_manual(values = shape_pal, drop = FALSE,
-                    guide = guide_legend(title = NULL)) +
-                scale_alpha_manual(values = alpha_pal, drop = FALSE,
-                    guide = guide_legend(title = NULL)) +
                 facet_sci(
                     vars(BandId),
                     scales = "free_y",
                     panel.labeller = ~letters[3]) -> plt_2
+
     plt_1 %<>%
         postprocess_axes(
             axes_margin = mar_(1 ~ cm, 1 ~ cm, 0 ~ npc, 1 ~ cm),
@@ -142,7 +159,7 @@ dates_range <- function(pattern = "data_") {
         map(range) %>%
         map(subtract, 2400000.5) %>%
         enframe(NULL) %>%
-        transmute(Group = as_factor(0:3),
+        transmute(Group = as_factor(cc("BH", "HIM", "Soft", "DH")),
                   Lower = map_dbl(value, 1L),
                   Upper = map_dbl(value, 2L))
 }
@@ -210,6 +227,5 @@ left_join_condition <- function(left, right, ...,
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
 
-    #dates_range() -> dates
-    read_x_rays() %>% print# %>% transform_x_ray(dates) %>% plot_x_ray
+    read_x_rays() %>% transform_x_ray() %>% plot_x_ray
 }
