@@ -21,8 +21,7 @@ read_x_rays <- function(
                fct_recode(!!!levels) %>%
                fct_get) %>%
         mutate(Data = map_dbl(value, 1L), Err = map_dbl(value, 2L)) %>%
-        select(-value, -MJD_start, -MJD_end) %>%
-        filter_range(MJD, cc(58190, 58450)) -> maxi_data
+        select(-value, -MJD_start, -MJD_end)  -> maxi_data
 
     path_bat %>%
         read_table(col_names = FALSE, col_types = cols(), comment = "#") %>%
@@ -31,7 +30,9 @@ read_x_rays <- function(
         mutate(BandId = "15-50") -> bat_data
 
     bind_rows(maxi_data, bat_data) %>%
-        mutate(BandId = as_factor(BandId))
+        mutate(BandId = as_factor(BandId) %>%
+            fct_relevel("2-4", "4-10", "10-20", "2-20", "15-50")) %>%
+        filter_range(MJD, cc(58190, 58450))
 
 }
 
