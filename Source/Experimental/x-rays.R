@@ -105,10 +105,10 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
             scale_x_sci(
                 name = NULL, limits = rng,
                 labels = function(x) rep(" ", len(x)),
-                sec.axis = sciplotr:::dup_axis_sci_weak()) +
+                sec.axis = dup_axis_sci_weak()) +
             scale_y_log10_sci(
                 name = NULL,
-                sec.axis = sciplotr:::dup_axis_sci_weak(),
+                sec.axis = dup_axis_sci_weak(),
                 labels = function(x) as.character(RLibs::glue_fmt("{x:%g}"))) +
             facet_sci(
                 vars(BandId),
@@ -143,8 +143,8 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                         alpha = 0.4,
                         data = dates, inherit.aes = FALSE) +
                 scale_fill_manual(values = col_pal, guide = guide_legend(title = "State")) +
-                scale_x_sci(sec.axis = sciplotr:::dup_axis_sci_weak()) +
-                scale_y_sci(name = NULL, sec.axis = sciplotr:::dup_axis_sci_weak()) +
+                scale_x_sci(sec.axis = dup_axis_sci_weak()) +
+                scale_y_sci(name = NULL, sec.axis = dup_axis_sci_weak()) +
                 facet_sci(
                     vars(BandId),
                     scales = "free_y",
@@ -173,6 +173,7 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
 }
 
 plot_x_ray_hr <- function(data, dates = dates_range()) {
+    require(sciplotr)
     col_pal <- cc(Style_GroupColors[cc(5, 8, 6, 7)], "#000000")
 
 
@@ -222,9 +223,9 @@ plot_x_ray_hr <- function(data, dates = dates_range()) {
                     data = boxes, inherit.aes = FALSE) +
             scale_color_manual(values = col_pal, drop = FALSE) +
             scale_y_log10_sci(name = "MAXI 2-20 keV, cts cm s^-2",
-                sec.axis = sciplotr:::dup_axis_sci_weak()) +
+                sec.axis = dup_axis_sci_weak()) +
             scale_x_sci(name = "MAXI 10-20 keV / 2-4 keV",
-                sec.axis = sciplotr:::dup_axis_sci_weak()) -> plt
+                sec.axis = dup_axis_sci_weak()) -> plt
 
     grid.newpage()
 
@@ -310,16 +311,9 @@ left_join_condition <- function(left, right, ...,
     bind_cols(left, right)
 }
 
-## TODO: mote to {siplotr}
-lin_unit <- function(x0, x, y) {
-    dx <- x[2] - x[1]
-    dy <- y[2] - y[1]
-
-    map(x0, ~ y[1] + dy / dx * (.x - x[1])) -> result
-    exec(grid::unit.c, !!!result)
-}
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
 
     read_x_rays() %>% transform_x_ray("2-20") %>% plot_x_ray_hr
+    #read_x_rays() %>% transform_x_ray() %>% plot_x_ray()
 }
