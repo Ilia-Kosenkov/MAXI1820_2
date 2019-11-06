@@ -75,17 +75,17 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
     labels_data <- dates_input %>%
         transmute(
                   Label = fct_get(Group),
-                  X = lin_unit(0.5 * (Lower + Upper), rng, u_(0$npc + 1$cm, 1$npc - 1$cm)),
+                  X = lin_unit(0.5 * (Lower + Upper), rng %>% expand_range(0.05), u_(0$npc, 1$npc)),
                   Y = u_(0.5 ~ cm))
 
-    text_grob <- textGrob(labels_data$Label, labels_data$X, labels_data$Y)
+    text_grob <- textGrob(labels_data$Label, labels_data$X, labels_data$Y, gp = gpar(fontsize = Style_TickFontSz))
 
-    maxi_hr_name <- "MAXI HR\n10-20 keV / 2-4 keV"
+    maxi_hr_name <- "MAXI HR\n\\small{$\\frac{10-20~\\mathrm{keV}}{2-4~\\mathrm{keV}}$}"
     levels <- cc("2-4", "15-50", "10-20 / 2-4") %>%
-                set_names(cc("MAXI 2-4 keV\ncts cm s^-2", "BAT 15-50 keV\ncts cm s^-2", maxi_hr_name))
+                set_names(cc("MAXI 2$-$4 keV\ncts~cm~s${^-2}$", "BAT 15$-$50 keV\ncts~cm~s${^-2}$", maxi_hr_name))
 
     data %<>% mutate(BandId = fct_recode(BandId,!!!levels))
-    
+
     data %>%
         filter(BandId != maxi_hr_name) %>%
         mutate(BandId = fct_drop(BandId)) %>%
@@ -94,7 +94,10 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                 ymin = Data - Err, ymax = Data + Err)) +
             coord_sci(xlim = rng, clip = "off") +
             theme_sci(
-                facet.lab.x = npc_(0.95)) +
+                text.size = Style_TickFontSz,
+                title.size = Style_LabelFontSz,
+                facet.lab.x = npc_(0.95),
+                facet.lab.y = npc_(0.9)) +
             geom_pointrange() +
             geom_polygon(
                 aes(x, y, fill = Group),
@@ -135,8 +138,13 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                     ymin = Low, ymax = Upp)) +
                 coord_sci(xlim = rng) +
                 theme_sci(
-                    legend.justification = cc(1.25, -0.1),
-                    facet.lab.x = npc_(0.95)) +
+                    legend.text = element_text(size = 0.75 * Style_TickFontSz),
+                    legend.title = element_text(size = Style_TickFontSz),
+                    text.size = Style_TickFontSz,
+                    title.size = Style_LabelFontSz,
+                    legend.justification = cc(1.1, -0.1),
+                    facet.lab.x = npc_(0.95),
+                    facet.lab.y = npc_(0.9)) +
                 geom_pointrange() +
                 geom_polygon(
                         aes(x, y_hr, group = Group, fill = Group),
@@ -152,8 +160,8 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
 
     plt_1 %<>%
         postprocess_axes(
-            axes_margin = mar_(1 ~ cm, 1 ~ cm, 0 ~ npc, 1 ~ cm),
-            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1 ~ cm))
+            axes_margin = mar_(1 ~ cm, 0.25 ~ cm, 0 ~ npc, 1.2 ~ cm),
+            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 2 ~ cm))
 
     pos <- get_grobs_layout(plt_1, "axis-t-1-1")[[1]]
 
@@ -163,9 +171,9 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
             name = "top-labels")
 
     plt_2 %<>% postprocess_axes(
-            axes_margin = mar_(0 ~ npc, 1 ~ cm, 1 ~ cm, 1 ~ cm),
-            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1 ~ cm),
-            text_margin = mar_(0 ~ npc, 0 ~ npc, 0.75 ~ cm, 0 ~ npc))
+            axes_margin = mar_(0 ~ npc, 0.25 ~ cm, 0.5 ~ cm, 1.2 ~ cm),
+            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 2 ~ cm),
+            text_margin = mar_(0 ~ npc, 0 ~ npc, 1.1 ~ cm, 0 ~ npc))
     gridExtra::arrangeGrob(plt_1, plt_2, ncol = 1, heights = u_(0.66 ~ null, 0.33 ~ null)) -> tbl
 
     grid.newpage()
@@ -314,6 +322,16 @@ left_join_condition <- function(left, right, ...,
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
 
-    read_x_rays() %>% transform_x_ray("2-20") %>% plot_x_ray_hr
-    #read_x_rays() %>% transform_x_ray() %>% plot_x_ray()
+    #read_x_rays() %>% transform_x_ray("2-20") %>% plot_x_ray_hr
+
+    file_path <- fs::path("Output", "Plots", "x-ray.tex")
+
+    tikz(file_path,
+        width = 8, height = 7,
+        standAlone = TRUE)
+    tryCatch(
+        { read_x_rays() %>% transform_x_ray() %>% plot_x_ray() },
+        finally = dev.off())
+
+    tex_2_pdf(file_path)
 }
