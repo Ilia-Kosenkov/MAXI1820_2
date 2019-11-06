@@ -98,7 +98,7 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                 title.size = Style_LabelFontSz,
                 facet.lab.x = npc_(0.95),
                 facet.lab.y = npc_(0.9)) +
-            geom_pointrange() +
+            geom_pointrange(size = 0.2) +
             geom_polygon(
                 aes(x, y, fill = Group),
                 alpha = 0.4,
@@ -145,7 +145,7 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                     legend.justification = cc(1.1, -0.1),
                     facet.lab.x = npc_(0.95),
                     facet.lab.y = npc_(0.9)) +
-                geom_pointrange() +
+                geom_pointrange(size = 0.2) +
                 geom_polygon(
                         aes(x, y_hr, group = Group, fill = Group),
                         alpha = 0.4,
