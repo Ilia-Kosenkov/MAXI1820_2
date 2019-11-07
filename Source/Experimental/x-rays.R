@@ -80,9 +80,11 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
 
     text_grob <- textGrob(labels_data$Label, labels_data$X, labels_data$Y, gp = gpar(fontsize = Style_TickFontSz))
 
-    maxi_hr_name <- "MAXI HR\n{$\\frac{10-20~\\mathrm{keV}}{2-4~\\mathrm{keV}}$}"
+    maxi_hr_name <- "\\small{MAXI HR}\n\\tiny{$\\frac{10-20~\\mathrm{keV}}{2-4~\\mathrm{keV}}$}"
     levels <- cc("2-4", "15-50", "10-20 / 2-4") %>%
-                set_names(cc("MAXI 2$-$4 keV\ncts~cm~s$^{-2}$", "BAT 15$-$50 keV\ncts~cm~s$^{-2}$", maxi_hr_name))
+                set_names(cc(
+                          "\\small{MAXI 2$-$4 keV}\n\\small{cts~cm~s$^{-2}$}",
+                          "\\small{BAT 15$-$50 keV}\n\\small{cts~cm~s$^{-2}$}", maxi_hr_name))
 
     data %<>% mutate(BandId = fct_recode(BandId,!!!levels))
 
@@ -100,7 +102,7 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                 text.size = Style_TickFontSz,
                 title.size = Style_TickFontSz,
                 facet.lab.x = npc_(0.94),
-                facet.lab.y = npc_(0.9)) +
+                facet.lab.y = npc_(0.88)) +
             geom_pointrange(size = 0.2) +
             geom_polygon(
                 aes(x, y, fill = Group),
@@ -145,9 +147,9 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                     legend.title = element_text(size = Style_TickFontSz),
                     text.size = Style_TickFontSz,
                     title.size = Style_TickFontSz,
-                    legend.justification = cc(1.1, -0.05),
+                    legend.justification = cc(1.125, -0.05),
                     facet.lab.x = npc_(0.94),
-                    facet.lab.y = npc_(0.9)) +
+                    facet.lab.y = npc_(0.88)) +
                 geom_pointrange(size = 0.2) +
                 geom_polygon(
                         aes(x, y_hr, group = Group, fill = Group),
@@ -163,8 +165,8 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
 
     plt_1 %<>%
         postprocess_axes(
-            axes_margin = mar_(1 ~ cm, 0.25 ~ cm, 0 ~ npc, 1.2 ~ cm),
-            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 2 ~ cm))
+            axes_margin = mar_(0.75 ~ cm, 0.25 ~ cm, 0 ~ npc, 1.2 ~ cm),
+            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1.8 ~ cm))
 
     pos <- get_grobs_layout(plt_1, "axis-t-1-1")[[1]]
 
@@ -175,9 +177,9 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
 
     plt_2 %<>% postprocess_axes(
             axes_margin = mar_(0 ~ npc, 0.25 ~ cm, 0.5 ~ cm, 1.2 ~ cm),
-            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 2 ~ cm),
-            text_margin = mar_(0 ~ npc, 0 ~ npc, 1.1 ~ cm, 0 ~ npc))
-    gridExtra::arrangeGrob(plt_1, plt_2, ncol = 1, heights = u_(0.66 ~ null, 0.33 ~ null)) -> tbl
+            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1.8 ~ cm),
+            text_margin = mar_(0 ~ npc, 0 ~ npc, 0.7 ~ cm, 0 ~ npc))
+    gridExtra::arrangeGrob(plt_1, plt_2, ncol = 1, heights = u_(0.63 ~ null, 0.37 ~ null)) -> tbl
 
     grid.newpage()
     grid.draw(tbl)
@@ -330,7 +332,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     file_path <- fs::path("Output", "Plots", "x-ray.tex")
 
     tikz(file_path,
-        width = 8, height = 5.5,
+        width = 8, height = 5,
         standAlone = TRUE)
     tryCatch(
         { read_x_rays() %>% transform_x_ray() %>% plot_x_ray() },
