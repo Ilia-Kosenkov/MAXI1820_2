@@ -1,4 +1,3 @@
-`%vec_in%` <- vctrs::vec_in
 
 read_x_rays <- function(
     path = fs::path("Input", "glcbin24.0h_regbg_v1.csv"),

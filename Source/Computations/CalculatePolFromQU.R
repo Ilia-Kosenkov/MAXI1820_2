@@ -25,7 +25,7 @@ CalculatePolFromQU <- function(.data) {
         mutate(
             A = 90 / pi * atan2(Py, Px),
             P = sqrt(Px ^ 2 + Py ^ 2),
-            SG_A = 180 / pi / 2 * SG / P) %>%
+            SG_A = 90 / pi * atan(SG / P)) %>%
         CalculateMinMax(col = P, err = SG) %>%
         CalculateMinMax(col = Px, err = SG) %>%
         CalculateMinMax(col = Py, err = SG) %>%

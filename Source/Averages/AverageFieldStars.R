@@ -20,21 +20,43 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-AverageFieldStars <- function(data = field_stars, which = c(2, 3, 6, 7, 9)) {
+AverageFieldStars <- function(
+    data = field_stars,
+    which = c(2, 3, 6, 7, 9),
+    strategy = ~.x[1]) {
+
+    data %>% map(names) %>% reduce(intersect) -> common_names
+    requried_names <- cc("JD", "MJD", "SG", "Px", "Py")
+    extra_names <- setdiff(common_names, requried_names)
+
+    summ_quo <- quos(JD = mean(JD), MJD = mean(MJD),
+                     SW = sum(W),
+                     Px = as.numeric(Px %*% W / SW),
+                     Py = as.numeric(Py %*% W / SW),
+                     SG = sqrt(1 / SW))
+
+    strategy <- as_function(strategy)
+
+    map(extra_names, ~ quo(strategy(!!sym(.x)))) %>%
+        set_names(extra_names) -> extra_summ
+
+    quos <- quos(!!!summ_quo, !!!extra_summ)
+
+
     data %>%
         map(filter, Star %in% which) %>%
         map(mutate, W = 1 / SG ^ 2) %>%
-        map(summarise,
-            JD = mean(JD), MJD = mean(MJD),
-            SW = sum(W),
-            Px = as.numeric(Px %*% W / SW),
-            Py = as.numeric(Py %*% W / SW),
-            SG = sqrt(1 / SW)) %>%
+        map(summarise, !!!quos) %>%
+            #JD = mean(JD), MJD = mean(MJD),
+            #SW = sum(W),
+            #Px = as.numeric(Px %*% W / SW),
+            #Py = as.numeric(Py %*% W / SW),
+            #SG = sqrt(1 / SW)) %>%
         map(CalculatePolFromQU) %>%
         map(select, - SW) %>%
-        map(select, JD, MJD, P, Px, Py, SG, A, SG_A, everything()) %>%
-        map(CalculateMinMax, P, SG) %>%
-        map(CalculateMinMax, Px, SG) %>%
-        map(CalculateMinMax, Py, SG) %>%
-        map(CalculateMinMax, A, SG_A)
+        map(select, JD, MJD, P, Px, Py, SG, A, SG_A, everything())# %>%
+        #map(CalculateMinMax, P, SG) %>%
+        #map(CalculateMinMax, Px, SG) %>%
+        #map(CalculateMinMax, Py, SG) %>%
+        #map(CalculateMinMax, A, SG_A)
 }

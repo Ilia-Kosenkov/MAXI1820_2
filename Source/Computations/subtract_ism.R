@@ -1,9 +1,10 @@
 subtract_ism <- function(data, ism) {
 
     ism %<>%
-        select(Px, Py, Band)
+        transmute(Px, Py, Band = fct_get(Band))
 
-    joined_data <- left_join(data, ism, by = "Band", suffix = cc("", "_ism"))
+    joined_data <- left_join(data %>% mutate(Band = fct_get(Band)),
+                             ism, by = "Band", suffix = cc("", "_ism"))
     joined_data %>%
         mutate(Px = Px - Px_ism,
                Py = Py - Py_ism) %>%
