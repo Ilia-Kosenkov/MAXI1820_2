@@ -80,23 +80,26 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
 
     text_grob <- textGrob(labels_data$Label, labels_data$X, labels_data$Y, gp = gpar(fontsize = Style_TickFontSz))
 
-    maxi_hr_name <- "MAXI HR\n\\small{$\\frac{10-20~\\mathrm{keV}}{2-4~\\mathrm{keV}}$}"
+    maxi_hr_name <- "MAXI HR\n{$\\frac{10-20~\\mathrm{keV}}{2-4~\\mathrm{keV}}$}"
     levels <- cc("2-4", "15-50", "10-20 / 2-4") %>%
-                set_names(cc("MAXI 2$-$4 keV\ncts~cm~s${^-2}$", "BAT 15$-$50 keV\ncts~cm~s${^-2}$", maxi_hr_name))
+                set_names(cc("MAXI 2$-$4 keV\ncts~cm~s$^{-2}$", "BAT 15$-$50 keV\ncts~cm~s$^{-2}$", maxi_hr_name))
 
     data %<>% mutate(BandId = fct_recode(BandId,!!!levels))
 
     data %>%
         filter(BandId != maxi_hr_name) %>%
         mutate(BandId = fct_drop(BandId)) %>%
+        group_split(BandId) %>%
+        map(filter, Data - Err > 1e-4) %>%
+        bind_rows %>%
         ggplot(aes(
                 x = MJD, y = Data,
                 ymin = Data - Err, ymax = Data + Err)) +
             coord_sci(xlim = rng, clip = "off") +
             theme_sci(
                 text.size = Style_TickFontSz,
-                title.size = Style_LabelFontSz,
-                facet.lab.x = npc_(0.95),
+                title.size = Style_TickFontSz,
+                facet.lab.x = npc_(0.94),
                 facet.lab.y = npc_(0.9)) +
             geom_pointrange(size = 0.2) +
             geom_polygon(
@@ -141,16 +144,16 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                     legend.text = element_text(size = 0.75 * Style_TickFontSz),
                     legend.title = element_text(size = Style_TickFontSz),
                     text.size = Style_TickFontSz,
-                    title.size = Style_LabelFontSz,
-                    legend.justification = cc(1.1, -0.1),
-                    facet.lab.x = npc_(0.95),
+                    title.size = Style_TickFontSz,
+                    legend.justification = cc(1.1, -0.05),
+                    facet.lab.x = npc_(0.94),
                     facet.lab.y = npc_(0.9)) +
                 geom_pointrange(size = 0.2) +
                 geom_polygon(
                         aes(x, y_hr, group = Group, fill = Group),
                         alpha = 0.4,
                         data = dates, inherit.aes = FALSE) +
-                scale_fill_manual(values = col_pal, guide = guide_legend(title = "State")) +
+                scale_fill_manual(values = col_pal, guide = guide_legend(title = "")) +
                 scale_x_sci(sec.axis = dup_axis_sci_weak()) +
                 scale_y_sci(name = NULL, sec.axis = dup_axis_sci_weak()) +
                 facet_sci(
@@ -327,7 +330,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     file_path <- fs::path("Output", "Plots", "x-ray.tex")
 
     tikz(file_path,
-        width = 8, height = 7,
+        width = 8, height = 5.5,
         standAlone = TRUE)
     tryCatch(
         { read_x_rays() %>% transform_x_ray() %>% plot_x_ray() },
