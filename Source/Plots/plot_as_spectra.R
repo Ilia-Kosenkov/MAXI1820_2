@@ -153,9 +153,34 @@ plot_as_spectra <- function(data) {
             cols = c(-WL, - Band, - Group),
             names_to = c(".value", "Var"), names_pattern = "^(.*)_(.*)$") %>%
         mutate(Var = as_factor(Var) %>%
-            fct_recode("$P_{BVR}$,~\\%" := "P", "$\\theta_{BVR}$,~deg$" := "A")) -> data
+            fct_recode("$P_{BVR}$~(\\%)" := "P", "$\\theta_{BVR}$~(deg)" := "A")) -> data
 
-    data %>% print
+    rng <- range(data$WL)
+    offset <- cc(0, 50, 50, 0)
+    data %>%
+        filter(Band == "R") %>%
+        mutate(
+            Label = as.character(parse_integer(fct_get(Group)) + 1L),
+            WL = Lin(vec_repeat(1.04, n()), cc(0, 1), rng)) %>%
+        select(WL, Label, Obs, Var) %>%
+        mutate(WL = if_else(
+                Var == fct_get(Var)[2],
+                WL + offset[parse_integer(Label)],
+                WL)) -> label_data
+
+    rng <- data %>%
+        filter(Var == fct_get(Var)[2]) %>%
+        transmute(Low = Obs - Err, High = Obs + Err) %>%
+        range
+
+    data %>%
+        filter(Var == fct_get(Var)[2], Group == 0) %>%
+        mutate(
+            Obs = Lin(vec_repeat(-0.05, n()), cc(0, 1), rng),
+            Label = fct_get(Band)) %>%
+        select(WL, Label, Obs, Var) %>%
+        vec_rbind(label_data) -> label_data
+
 
     data %>%
         ggplot_sci(
@@ -164,25 +189,43 @@ plot_as_spectra <- function(data) {
                 group = Group, col = Group, shape = Group, fill = Group)) +
         theme_sci(
                 text.size = Style_TickFontSz,
-                title.size = Style_TickFontSz,
-                facet.lab.x = npc_(0.94),
-                facet.lab.y = npc_(0.88)) +
-        geom_pointrange() +
+                title.size = Style_LabelFontSz,
+                facet.lab.x = npc_(0.945),
+                facet.lab.y = npc_(0.9)) +
         geom_line() +
+        geom_errorbar(width = 0, size = 0.7) +
+        geom_point(size = 2) +
+        geom_text(aes(WL, Obs, label = Label),
+            size = convertY(pt_(0.8 * Style_TickFontSz), "mm", TRUE),
+            label_data, inherit.aes =  FALSE) +
         scale_color_manual(values = col_pal, breaks = 0:3, guide = NULL) +
         scale_fill_manual(values = col_pal, breaks = 0:3, guide = NULL) +
         scale_shape_manual(values = shape_pal, breaks = 0:3, guide = NULL) +
         scale_x_sci(
             name = "$\\lambda$,~\\AA", sec.axis = dup_axis_sci_weak(),
-            expand = expansion(cc(0.02, 0.1), 0)) +
+            expand = expansion(0.09, 0)) +
         scale_y_sci(name = NULL, sec.axis = dup_axis_sci_weak(),
-            expand = expansion(0.05, 0)) +
-        facet_sci(vars(Var), scales = "free_y", panel.labeller = ~letters[.x$Id])
+            expand = expansion(0.12, 0)) +
+        facet_sci(vars(Var), scales = "free_y", panel.labeller = ~letters[.x$Id]) -> plt
 
+    plt %>%
+        postprocess_axes(
+            axes_margin = mar_(0.25 ~ cm, 0.25 ~ cm, 0.5 ~ cm, 0.75 ~ cm),
+            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1.1 ~ cm),
+            text_margin = mar_(0 ~ npc, 0 ~ npc, 1.1 ~ cm, 0 ~ npc)) -> tbl
+
+    grid.newpage()
+    grid.draw(tbl)
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
-    prepare_spectra_data() %>% plot_as_spectra %>% print
+    file_path <- fs::path("Output", "Plots", "pol_spec.tex")
+    tikz(file_path, width = Style_WidthStdInch, height = Style_HeightStdInch * 0.95, standAlone = TRUE)
+    tryCatch({
+             prepare_spectra_data() %>% plot_as_spectra
+        },
+        finally = dev.off())
+    tex_2_pdf(file_path)
     #bndOrder <- Bands %>% pull(Band)
     #avgData <- ReadAllAvgData(
     #pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)") %>%
