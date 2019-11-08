@@ -134,12 +134,76 @@ prepare_lc_data <- function(
     identity %>%
     transmute(MJD, Obs_P = P, Err_P = SG, Obs_A = A, Err_A = SG_A, Group, Band = as_factor(Band), Type) %>%
     pivot_longer(matches("^Obs|^Err"), names_pattern = "^(.*)_(.*)$", names_to = c(".value", "Var")) %>%
-    mutate(Var = as_factor(Var))
+    mutate(Var = as_factor(Var), Band = fct_relevel(Band, "B", "V", "R"))
+}
+
+plot_lc <- function(data) {
+    require(sciplotr)
+    ids <- data %>%
+        filter(Var == "P") %>%
+        transmute(test = Obs < 1 & Obs > 0.2 & Err < 0.3) %>%
+        pull(test) %>%
+        which
+
+    data %>%
+        group_by(Var) %>%
+        slice(ids) %>%
+        ungroup %>%
+        mutate(JoinedType = interaction(Group, Type)) -> prep_data
+
+
+    limits <- cc(paste0(cc(0, 2, 3, 1), ".N"), paste0(cc(0, 2, 3, 1), ".A"))
+    col_pal <- Style_GroupColors[1:len(limits)]
+    shape_pal <- Style_GroupShapes[1:len(limits)]
+    size_pal <- vec_repeat(cc(Style_SymbolSizeSmall, Style_SymbolSize), each = len(limits) / 2)
+
+    list(
+         var = cc("P", "A"),
+         offset = cc(0L, 3L),
+         lab = cc("$P_{{{.x$rows$Band}}}$~(\\%)", "$\\theta_{{{.x$rows$Band}}}$~(deg)")) %>%
+         pmap(function(var, offset, lab) {
+
+             prep_data %>%
+                filter(Var == var) %>%
+                ggplot_sci(aes(MJD, Obs, ymin = Obs - Err, ymax = Obs + Err,
+                    col = JoinedType,
+                    fill = JoinedType,
+                    size = JoinedType,
+                    shape = JoinedType)) +
+                theme_sci(
+                    text.size = Style_TickFontSz,
+                    title.size = Style_LabelFontSz,
+                    facet.lab.x = npc_(0.945),
+                    facet.lab.y = npc_(0.9)) +
+                geom_errorbar(width = 0, size = 0.7) +
+                geom_point() +
+                scale_color_manual(values = col_pal, limits = limits, guide = NULL) +
+                scale_fill_manual(values = col_pal, limits = limits, guide = NULL) +
+                scale_shape_manual(values = shape_pal, limits = limits, guide = NULL) +
+                scale_size_manual(values = size_pal, limits = limits, guide = NULL) +
+                scale_x_sci(sec.axis = dup_axis_sci_weak(), minor_breaks_n = 10) +
+                scale_y_sci(sec.axis = dup_axis_sci_weak(), name = NULL, breaks_n = 3) +
+                facet_sci(vars(Band), scale = "fixed",
+                          labeller = label_f(.f_left = ~RLibs::glue_fmt(lab)),
+                          panel.labeller = ~letters[.x$Id + offset])
+         }) %>%
+    map(postprocess_axes,
+        axes_margin = mar_(0.25 ~ cm, 0.25 ~ cm, 0.5 ~ cm, 1.1 ~ cm),
+        strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 0.85 ~ cm),
+        text_margin = mar_(0 ~ npc, 0 ~ npc, 1.1 ~ cm, 0 ~ npc)) -> grobs
+
+    grid.newpage()
+    exec(gridExtra::arrangeGrob, !!!grobs, ncol = 2, widths = u_(0.5 ~ npc, 0.5 ~ npc)) %>%
+        grid.draw
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
-    prepare_lc_data() %>% print
-
+    tic()
+    file_path <- fs::path("Output", "Plots", "lc_new.tex")
+    tikz(file_path, width = 2 * Style_WidthStdInch, height = Style_HeightStdInch, standAlone = TRUE)
+    tryCatch(prepare_lc_data() %>% plot_lc(), finally = dev.off())
+    tex_2_pdf(file_path)
+    toc()
     #if (FALSE) {
     #tic("Total")
     #grps <- c(0, 1, 2, 3)
