@@ -173,16 +173,16 @@ plot_lc <- function(data) {
                 theme_sci(
                     text.size = Style_TickFontSz,
                     title.size = Style_LabelFontSz,
-                    facet.lab.x = npc_(0.945),
-                    facet.lab.y = npc_(0.9)) +
+                    facet.lab.x = npc_(0.92),
+                    facet.lab.y = npc_(0.88)) +
                 geom_errorbar(width = 0, size = 0.7) +
                 geom_point() +
                 scale_color_manual(values = col_pal, limits = limits, guide = NULL) +
                 scale_fill_manual(values = col_pal, limits = limits, guide = NULL) +
                 scale_shape_manual(values = shape_pal, limits = limits, guide = NULL) +
                 scale_size_manual(values = size_pal, limits = limits, guide = NULL) +
-                scale_x_sci(sec.axis = dup_axis_sci_weak(), minor_breaks_n = 10) +
-                scale_y_sci(sec.axis = dup_axis_sci_weak(), name = NULL, breaks_n = 3) +
+                scale_x_sci(sec.axis = dup_axis_sci_weak(), minor_breaks_n = 20) +
+                scale_y_sci(sec.axis = dup_axis_sci_weak(), name = NULL, breaks_n = 3, minor_breaks_n = 20) +
                 facet_sci(vars(Band), scale = "fixed",
                           labeller = label_f(.f_left = ~RLibs::glue_fmt(lab)),
                           panel.labeller = ~letters[.x$Id + offset])
