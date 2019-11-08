@@ -201,7 +201,7 @@ plot_as_spectra <- function(data) {
         scale_fill_manual(values = col_pal, breaks = 0:3, guide = NULL) +
         scale_shape_manual(values = shape_pal, breaks = 0:3, guide = NULL) +
         scale_x_sci(
-            name = "$\\lambda$,~\\AA", sec.axis = dup_axis_sci_weak(),
+            name = "$\\lambda$~(\\AA)", sec.axis = dup_axis_sci_weak(),
             expand = expansion(0.09, 0)) +
         scale_y_sci(name = NULL, sec.axis = dup_axis_sci_weak(),
             expand = expansion(0.12, 0)) +
@@ -218,13 +218,15 @@ plot_as_spectra <- function(data) {
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
+    tic()
     file_path <- fs::path("Output", "Plots", "pol_spec.tex")
-    tikz(file_path, width = Style_WidthStdInch, height = Style_HeightStdInch * 0.95, standAlone = TRUE)
+    tikz(file_path, width = Style_WidthStdInch, height = Style_HeightStdInch, standAlone = TRUE)
     tryCatch({
              prepare_spectra_data() %>% plot_as_spectra
         },
         finally = dev.off())
     tex_2_pdf(file_path)
+    toc()
     #bndOrder <- Bands %>% pull(Band)
     #avgData <- ReadAllAvgData(
     #pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)") %>%
