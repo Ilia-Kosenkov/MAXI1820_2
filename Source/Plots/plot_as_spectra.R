@@ -126,9 +126,8 @@ prepare_spectra_data <- function(
     band_info = Bands) {
 
     avg_data %>%
-        imap(~mutate(.x, Band = as_factor(.y))) %>%
-        map(select, MJD, Px, Py, P, SG, A, SG_A, Band, Group) %>%
-        vec_rbind_uq -> pol
+        vec_rbind_uq(.names_to = "Band") %>%
+        transmute(MJD, Px, Py, P, SG, A, SG_A, Band = as_factor(Band), Group) -> pol
 
     field_data %>%
         imap(~mutate(.x, Band = as_factor(.y))) %>%
