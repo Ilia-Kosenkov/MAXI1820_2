@@ -98,9 +98,10 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                 ymin = Data - Err, ymax = Data + Err)) +
             coord_sci(xlim = rng, clip = "off") +
             theme_sci(
+                ticks = -u_(5 ~ pt),
                 text.size = Style_TickFontSz,
                 title.size = Style_TickFontSz,
-                facet.lab.x = npc_(0.94),
+                facet.lab.x = npc_(0.03),
                 facet.lab.y = npc_(0.88)) +
             geom_pointrange(size = 0.2) +
             geom_polygon(
@@ -119,8 +120,7 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                 labels = function(x) as.character(RLibs::glue_fmt("{x:%g}"))) +
             facet_sci(
                 vars(BandId),
-                scales = "free_y",
-                panel.labeller = ~letters[.x$Id]) -> plt_1
+                scales = "free_y") -> plt_1
     data %>%
         filter(BandId == maxi_hr_name) %>%
         mutate(BandId = fct_drop(BandId)) -> hardness_ratio
@@ -142,12 +142,13 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                     ymin = Low, ymax = Upp)) +
                 coord_sci(xlim = rng) +
                 theme_sci(
+                    ticks = -u_(5 ~ pt),
                     legend.text = element_text(size = 0.75 * Style_TickFontSz),
                     legend.title = element_text(size = Style_TickFontSz),
                     text.size = Style_TickFontSz,
                     title.size = Style_TickFontSz,
                     legend.justification = cc(1.125, -0.05),
-                    facet.lab.x = npc_(0.94),
+                    facet.lab.x = npc_(0.03),
                     facet.lab.y = npc_(0.88)) +
                 geom_pointrange(size = 0.2) +
                 geom_polygon(
@@ -160,7 +161,7 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                 facet_sci(
                     vars(BandId),
                     scales = "free_y",
-                    panel.labeller = ~letters[3]) -> plt_2
+                    panel.labeller = ~"(c)") -> plt_2
 
     plt_1 %<>%
         postprocess_axes(
@@ -327,7 +328,7 @@ left_join_condition <- function(left, right, ...,
 if (get0("ShouldRun", ifnotfound = FALSE)) {
 
     #read_x_rays() %>% transform_x_ray("2-20") %>% plot_x_ray_hr
-
+    tic()
     file_path <- fs::path("Output", "Plots", "x-ray.tex")
 
     tikz(file_path,
@@ -338,4 +339,5 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         finally = dev.off())
 
     tex_2_pdf(file_path)
+    toc()
 }

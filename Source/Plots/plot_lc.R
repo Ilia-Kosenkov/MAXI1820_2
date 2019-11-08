@@ -171,9 +171,10 @@ plot_lc <- function(data) {
                     size = JoinedType,
                     shape = JoinedType)) +
                 theme_sci(
+                    ticks = -u_(5 ~ pt),
                     text.size = Style_TickFontSz,
                     title.size = Style_LabelFontSz,
-                    facet.lab.x = npc_(0.92),
+                    facet.lab.x = npc_(0.07),
                     facet.lab.y = npc_(0.88)) +
                 geom_errorbar(width = 0, size = 0.7) +
                 geom_point() +
@@ -185,7 +186,7 @@ plot_lc <- function(data) {
                 scale_y_sci(sec.axis = dup_axis_sci_weak(), name = NULL, breaks_n = 3, minor_breaks_n = 20) +
                 facet_sci(vars(Band), scale = "fixed",
                           labeller = label_f(.f_left = ~RLibs::glue_fmt(lab)),
-                          panel.labeller = ~letters[.x$Id + offset])
+                          panel.labeller = ~RLibs::glue_fmt("({letters[.x$Id + offset]})"))
          }) %>%
     map(postprocess_axes,
         axes_margin = mar_(0.25 ~ cm, 0.25 ~ cm, 0.5 ~ cm, 1.1 ~ cm),

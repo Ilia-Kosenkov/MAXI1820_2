@@ -187,25 +187,26 @@ plot_as_spectra <- function(data) {
                 WL, Obs, ymin = Obs - Err, ymax = Obs + Err,
                 group = Group, col = Group, shape = Group, fill = Group)) +
         theme_sci(
+                ticks = -u_(5 ~ pt),
                 text.size = Style_TickFontSz,
                 title.size = Style_LabelFontSz,
-                facet.lab.x = npc_(0.945),
+                facet.lab.x = npc_(0.07),
                 facet.lab.y = npc_(0.9)) +
         geom_line() +
         geom_errorbar(width = 0, size = 0.7) +
         geom_point(size = 2) +
         geom_text(aes(WL, Obs, label = Label),
             size = convertY(pt_(0.8 * Style_TickFontSz), "mm", TRUE),
-            label_data, inherit.aes =  FALSE) +
+            label_data, inherit.aes = FALSE) +
         scale_color_manual(values = col_pal, breaks = 0:3, guide = NULL) +
         scale_fill_manual(values = col_pal, breaks = 0:3, guide = NULL) +
         scale_shape_manual(values = shape_pal, breaks = 0:3, guide = NULL) +
         scale_x_sci(
             name = "$\\lambda$~(\\AA)", sec.axis = dup_axis_sci_weak(),
-            expand = expansion(0.09, 0)) +
+            expand = expansion(0.05, 0)) +
         scale_y_sci(name = NULL, sec.axis = dup_axis_sci_weak(),
             expand = expansion(0.12, 0)) +
-        facet_sci(vars(Var), scales = "free_y", panel.labeller = ~letters[.x$Id]) -> plt
+        facet_sci(vars(Var), scales = "free_y", panel.labeller = ~RLibs::glue_fmt("({letters[.x$Id]})")) -> plt
 
     plt %>%
         postprocess_axes(
