@@ -134,8 +134,8 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
     hardness_ratio %<>%
         filter_range(Data, hr_rng) %>%
         mutate(Upp = Data + Err, Low = Data - Err) %>%
-        Clamp(Upp, hr_rng) %>%
-        Clamp(Low, hr_rng)
+        clamp(Upp, hr_rng) %>%
+        clamp(Low, hr_rng)
 
     hardness_ratio %>% ggplot(aes(
                     x = MJD, y = Data,
@@ -174,7 +174,7 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
             plt_1, text_grob, pos[3], pos[1],
             clip = "off",
             name = "top-labels")
-
+    
     plt_2 %<>% postprocess_axes(
             axes_margin = mar_(0 ~ npc, 0.25 ~ cm, 0.5 ~ cm, 1.2 ~ cm),
             strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1.8 ~ cm),

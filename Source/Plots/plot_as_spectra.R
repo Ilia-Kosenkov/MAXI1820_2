@@ -160,7 +160,7 @@ plot_as_spectra <- function(data) {
         filter(Band == "R") %>%
         mutate(
             Label = as.character(parse_integer(fct_get(Group)) + 1L),
-            WL = Lin(vec_repeat(1.04, n()), cc(0, 1), rng)) %>%
+            WL = lin(vec_repeat(1.04, n()), cc(0, 1), rng)) %>%
         select(WL, Label, Obs, Var) %>%
         mutate(WL = if_else(
                 Var == fct_get(Var)[2],
@@ -175,7 +175,7 @@ plot_as_spectra <- function(data) {
     data %>%
         filter(Var == fct_get(Var)[2], Group == 0) %>%
         mutate(
-            Obs = Lin(vec_repeat(-0.05, n()), cc(0, 1), rng),
+            Obs = lin(vec_repeat(-0.05, n()), cc(0, 1), rng),
             Label = fct_get(Band)) %>%
         select(WL, Label, Obs, Var) %>%
         vec_rbind(label_data) -> label_data

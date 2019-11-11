@@ -50,12 +50,12 @@ PlotLC <- function(data, avg_data,
 
     if (!is.null(yrng)) {
         data %<>%
-            Clamp(!!ymin, yrng) %>%
-            Clamp(!!ymax, yrng)
+            clamp(!!ymin, yrng) %>%
+            clamp(!!ymax, yrng)
 
         avg_data %<>%
-            Clamp(!!ymin, yrng) %>%
-            Clamp(!!ymax, yrng)
+            clamp(!!ymin, yrng) %>%
+            clamp(!!ymax, yrng)
     }
 
     tic(glue("Generated plot for {y}"))
