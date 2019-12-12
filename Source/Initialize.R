@@ -43,8 +43,8 @@
     library(Dipol2Red)
 
     # experimental parallel
-    library(doSNOW)
-    library(foreach)
+    #library(doSNOW)
+    #library(foreach)
     library(fs)
     library(assertthat)
     library(tictoc)
