@@ -25,6 +25,7 @@ PlotQU <- function(data,
         group,
         shape_group = Group,
         isTex = FALSE, plotGrid = FALSE) {
+    require(sciplotr)
     q <- ensym(q)
     u <- ensym(u)
     qmin <- enquo(qmin)
@@ -33,7 +34,6 @@ PlotQU <- function(data,
     umax <- enquo(umax)
     group <- ensym(group)
     shape_group <- quo(fct_relabel(!!enquo(shape_group), ~ as.character(as.numeric(.) + 1L)))
-
     q_end <- sym(paste0(q, "_end"))
     u_end <- sym(paste0(u, "_end"))
 
@@ -49,7 +49,10 @@ PlotQU <- function(data,
     if (quo_is_missing(umax))
         umax <- GetMinMaxNames(!!u)$max
 
+    u_ids <- as.integer(unique(fct_get(transmute(data, X = !!shape_group)$X)))
     subtr <- -0.03
+    labs_offset_1 <- cc(-1, 2, 0.5, -1)[u_ids]
+    labs_offset_2 <- cc(0, 0, 2, 1)[u_ids]
 
     arrowData <- data %>%
         select(!!q, !!u, !!group) %>%
@@ -58,7 +61,7 @@ PlotQU <- function(data,
         bind_rows %>%
         mutate(!!quo_squash(group) := as_factor(!!group))
 
-    p <- ggplot(data, aes(
+    p <- ggplot_sci(data, aes(
         x = !!q, y = !!u,
         xmin = !!qmin, xmax = !!qmax,
         ymin = !!umin, ymax = !!umax,
@@ -86,8 +89,8 @@ PlotQU <- function(data,
             geom_segment(
                 aes(x = x, xend = xend, y = y, yend = yend),
                 tibble(
-                    x = cc(xrng[1], 0), xend = cc(xrng[2], 0),
-                    y = cc(0, yrng[1]), yend = cc(0, yrng[2])),
+                    x = cc(-Inf, 0), xend = cc(Inf, 0),
+                    y = cc(0, -Inf), yend = cc(0, Inf)),
                 inherit.aes = FALSE,
                 alpha = Style_AlphaBackground, size = Style_LineSize)
     }
@@ -97,8 +100,8 @@ PlotQU <- function(data,
         geom_point(size = Style_SymbolSize) +
         ### Text labels
         geom_text(
-            aes(x = !!q + cc(-1, 2, 0.5, -1) * 0.02,
-                y = !!u + cc(0, 0, 2, 1) * 0.02,
+            aes(x = !!q + labs_offset_1 * 0.02,
+                y = !!u + labs_offset_2 * 0.02,
                 label = !!shape_group),
             size = grid::convertX(grid::unit(Style_LabelFontSz, "pt"), "mm", TRUE),
             col = "#000000",
@@ -131,34 +134,40 @@ PlotQU <- function(data,
             inherit.aes = FALSE,
             size = Style_LineSize,
             arrow = arrow(length = Style_ArrowLength)) +
-        theme_scientific(
-            textSz = Style_TickFontSz,
-            titleSz = Style_LabelFontSz) +
-        coord_cartesian(clip = "off",
-            xlim = xrng, ylim = yrng, expand = FALSE) +
-        xlab(
-            if (isTex)
-                "$q_{BVR}$ (\\%)"
-            else
-                expression(italic(q[BVR]) ~ "(%)")) +
-        ylab(
-            if (isTex)
-                "$u_{BVR}$ (\\%)"
-            else
-                expression(italic(u[BVR]) ~ "(%)"))
+        theme_sci(text.size = Style_TickFontSz,
+                  title.size = Style_LabelFontSz) +
+        #DefaultTheme(
+            #textSz = Style_TickFontSz,
+            #titleSz = Style_LabelFontSz) +
+        #coord_sci(clip = "off",
+            #xlim = xrng, ylim = yrng, expand = FALSE) +
+        scale_x_sci(
+            name =
+                if (isTex)
+                    "$q_{BVR}$ (\\%)"
+                else
+                    expression(italic(q[BVR]) ~ "(%)"),
+            sec.axis = dup_axis_sci_weak()) +
+        scale_y_sci(
+            name =
+                if (isTex)
+                    "$u_{BVR}$ (\\%)"
+                else
+                    expression(italic(u[BVR]) ~ "(%)"),
+            sec.axis = dup_axis_sci_weak())
 
 
-    p %>%
-        LinearScaleTicks(
-            rng = xrng, side = "x",
-            gp = gpar(fontsize = Style_TickFontSz)) %>%
-        LinearScaleTicks(
-            rng = yrng, side = "y",
-            gp = gpar(fontsize = Style_TickFontSz))
+    #p %>%
+        #LinearScaleTicks(
+            #rng = xrng, side = "x",
+            #gp = gpar(fontsize = Style_TickFontSz)) %>%
+        #LinearScaleTicks(
+            #rng = yrng, side = "y",
+            #gp = gpar(fontsize = Style_TickFontSz))
 }
 
-if (get0("ShouldRun", ifnotfound = FALSE)) {
-#if (FALSE) {
+#if (get0("ShouldRun", ifnotfound = FALSE)) {
+if (FALSE) {
     grps <- cc(0, 1, 2, 3)
     bndOrder <- Bands %>% pull(Band)
     dt <- ReadAllAvgData(
@@ -172,7 +181,6 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         mutate_at(vars(ID, Group, Band), as_factor) %>%
         filter(Group %in% grps)
 
-    
     plt <- data %>% PlotQU(Px, Py,
             group = ID,
             plotGrid = TRUE,                          # Comment for normal plot
