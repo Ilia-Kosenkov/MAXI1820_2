@@ -74,10 +74,14 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
     labels_data <- dates_input %>%
         transmute(
                   Label = fct_get(Group),
-                  X = lin_unit(0.5 * (Lower + Upper), rng %>% expand_range(0.05), u_(0$npc, 1$npc)),
-                  Y = u_(0.5 ~ cm))
+                  X = as_list(lin_unit(0.5 * (Lower + Upper), rng %>% expand_range(0.05), u_(0$npc, 1$npc))),
+                  Y = list(u_(0.5 ~ cm)))
 
-    text_grob <- textGrob(labels_data$Label, labels_data$X, labels_data$Y, gp = gpar(fontsize = Style_TickFontSz))
+    text_grob <- textGrob(
+        labels_data$Label,
+        grid:::unit.list.from.list(labels_data$X),
+        grid:::unit.list.from.list(labels_data$Y),
+        gp = gpar(fontsize = Style_TickFontSz))
 
     maxi_hr_name <- "\\small{MAXI HR}\n\\tiny{$\\frac{10-20~\\mathrm{keV}}{2-4~\\mathrm{keV}}$}"
     levels <- cc("2-4", "15-50", "10-20 / 2-4") %>%
@@ -331,13 +335,13 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     tic()
     file_path <- fs::path("Output", "Plots", "x-ray.tex")
 
-    tikz(file_path,
-        width = 8, height = 5,
-        standAlone = TRUE)
-    tryCatch(
-        { read_x_rays() %>% transform_x_ray() %>% plot_x_ray() },
-        finally = dev.off())
+    #tikz(file_path,
+        #width = 8, height = 5,
+        #standAlone = TRUE)
+    #tryCatch(
+        { read_x_rays() %>% transform_x_ray() %>% plot_x_ray() }#,
+        #finally = dev.off())
 
-    tex_2_pdf(file_path)
+    #tex_2_pdf(file_path)
     toc()
 }
