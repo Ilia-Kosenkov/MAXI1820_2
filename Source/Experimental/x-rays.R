@@ -104,32 +104,36 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                 x = MJD, y = Data,
                 ymin = Data - Err, ymax = Data + Err,
                 shape = BandId)) +
-            coord_sci(xlim = rng, clip = "off") +
-            theme_sci(
-                ticks = -u_(5 ~ pt),
-                text.size = Style_TickFontSz,
-                title.size = Style_TickFontSz,
-                legend.position = cc(1, 1),
-                legend.justification = cc(1, 1.05),
-                legend.text = element_text(size = 0.65 * Style_TickFontSz),
-                facet.lab.x = npc_(0.03),
-                facet.lab.y = npc_(0.88)) +
-            geom_pointrange(size = 0.3) +
-            geom_polygon(
-                aes(x, y, fill = Group),
-                alpha = 0.4,
-                show.legend = FALSE,
-                data = dates, inherit.aes = FALSE) +
-            scale_fill_manual(values = col_pal) +
-            scale_shape_manual(values = c(19, 1), guide = guide_legend(title = "X-ray flux")) +
-            scale_x_sci(
-                name = NULL, limits = rng,
-                labels = function(x) rep(" ", len(x)),
-                sec.axis = dup_axis_sci_weak()) +
-            scale_y_log10_sci(
-                name = NULL,
-                sec.axis = dup_axis_sci_weak(),
-                labels = function(x) as.character(RLibs::glue_fmt("{x:%g}"))) -> plt_1
+        coord_sci(xlim = rng, clip = "off") +
+        theme_sci(
+            ticks = -u_(5 ~ pt),
+            text.size = Style_TickFontSz,
+            title.size = Style_TickFontSz,
+            legend.position = cc(1, 1),
+            legend.justification = cc(1, 1.05),
+            legend.text = element_text(size = 0.65 * Style_TickFontSz),
+            facet.lab.x = npc_(0.03),
+            facet.lab.y = npc_(0.88)) +
+        geom_pointrange(size = 0.3) +
+        geom_polygon(
+            aes(x, y, fill = Group),
+            alpha = 0.4,
+            show.legend = FALSE,
+            data = dates, inherit.aes = FALSE) +
+        scale_fill_manual(values = col_pal) +
+        scale_shape_manual(values = c(19, 1), guide = guide_legend(title = "X-ray flux")) +
+        scale_x_sci(
+            name = NULL, limits = rng,
+            labels = function(x) rep(" ", len(x)),
+            sec.axis = dup_axis_sci_weak()) +
+        scale_y_log10_sci(
+            name = NULL,
+            sec.axis = dup_axis_sci_weak(),
+            labels = function(x) as.character(RLibs::glue_fmt("{x:%g}"))) +
+        annotation_custom(
+            textGrob("(a)",
+                x = npc_(0.03), y = npc_(0.88),
+                gp = gpar(fontsize = Style_LabelFontSz))) -> plt_1
 
     data %>%
         filter(BandId == maxi_hr_name) %>%
@@ -147,43 +151,44 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
         clamp(Upp, hr_rng) %>%
         clamp(Low, hr_rng)
 
-    hardness_ratio %>% ggplot(aes(
-                    x = MJD, y = Data,
-                    ymin = Low, ymax = Upp)) +
-                coord_sci(xlim = rng) +
-                theme_sci(
-                    ticks = -u_(5 ~ pt),
-                    legend.text = element_text(size = 0.75 * Style_TickFontSz),
-                    legend.title = element_text(size = Style_TickFontSz),
-                    text.size = Style_TickFontSz,
-                    title.size = Style_TickFontSz,
-                    legend.justification = cc(1.125, -0.05),
-                    facet.lab.x = npc_(0.03),
-                    facet.lab.y = npc_(0.88)) +
-                geom_pointrange(size = 0.2) +
-                geom_polygon(
-                        aes(x, y_hr, group = Group, fill = Group),
-                        alpha = 0.4,
-                        data = dates, inherit.aes = FALSE) +
-                scale_fill_manual(values = col_pal, guide = guide_legend(title = "")) +
-                scale_x_sci(sec.axis = dup_axis_sci_weak()) +
-                scale_y_sci(name = "Name", sec.axis = dup_axis_sci_weak()) -> plt_3#+
-                #facet_sci(
-                    #vars(BandId),
-                    #scales = "free_y",
-                    #panel.labeller = ~"(c)") -> plt_3
+    hardness_ratio %>%
+        ggplot(aes(
+                x = MJD, y = Data,
+                ymin = Low, ymax = Upp)) +
+        coord_sci(xlim = rng) +
+        theme_sci(
+            ticks = -u_(5 ~ pt),
+            legend.text = element_text(size = 0.75 * Style_TickFontSz),
+            legend.title = element_text(size = Style_TickFontSz),
+            text.size = Style_TickFontSz,
+            title.size = Style_TickFontSz,
+            legend.justification = cc(1.125, -0.05),
+            facet.lab.x = npc_(0.03),
+            facet.lab.y = npc_(0.88)) +
+        geom_pointrange(size = 0.2) +
+        geom_polygon(
+                aes(x, y_hr, group = Group, fill = Group),
+                alpha = 0.4,
+                data = dates, inherit.aes = FALSE) +
+        scale_fill_manual(values = col_pal, guide = guide_legend(title = "")) +
+        scale_x_sci(sec.axis = dup_axis_sci_weak()) +
+        scale_y_sci(name = "Name", sec.axis = dup_axis_sci_weak()) +
+        annotation_custom(
+                textGrob("(c)",
+                x = npc_(0.03), y = npc_(0.88),
+                gp = gpar(fontsize = Style_LabelFontSz))) -> plt_3
 
     plt_1 %<>%
         postprocess_axes(
             axes_margin = mar_(0.75 ~ cm, 0.25 ~ cm, 0 ~ npc, 1.2 ~ cm),
             text_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 0.8 ~ cm))
 
-    #pos <- get_grobs_layout(plt_1, "axis-t-1-1")[[1]]
+    pos <- get_grobs_layout(plt_1, "axis-t")[[1]]
 
-    #plt_1 <- gtable::gtable_add_grob(
-            #plt_1, text_grob, pos[3], pos[1],
-            #clip = "off",
-            #name = "top-labels")
+    plt_1 <- gtable::gtable_add_grob(
+            plt_1, text_grob, pos[3], pos[1],
+            clip = "off",
+            name = "top-labels")
     
     plt_3 %<>% postprocess_axes(
             axes_margin = mar_(0 ~ npc, 0.25 ~ cm, 0.5 ~ cm, 1.2 ~ cm),
