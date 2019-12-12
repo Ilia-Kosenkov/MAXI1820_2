@@ -83,37 +83,45 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
         grid:::unit.list.from.list(labels_data$Y),
         gp = gpar(fontsize = Style_TickFontSz))
 
-    maxi_hr_name <- "\\small{MAXI HR}\n\\tiny{$\\frac{10-20~\\mathrm{keV}}{2-4~\\mathrm{keV}}$}"
-    levels <- cc("2-4", "15-50", "10-20 / 2-4") %>%
-                set_names(cc(
-                          "\\small{MAXI 2$-$4 keV}\n\\small{cts~cm~s$^{-2}$}",
-                          "\\small{BAT 15$-$50 keV}\n\\small{cts~cm~s$^{-2}$}", maxi_hr_name))
+    #maxi_hr_name <- "\\small{MAXI HR}\n\\tiny{$\\frac{10-20~\\mathrm{keV}}{2-4~\\mathrm{keV}}$}"
+    maxi_hr_name <- "hr"
+    #levels <- cc("2-4", "15-50", "10-20 / 2-4") %>%
+                #set_names(cc(
+                          #"\\small{MAXI 2$-$4 keV}\n\\small{cts~cm~s$^{-2}$}",
+                          #"\\small{BAT 15$-$50 keV}\n\\small{cts~cm~s$^{-2}$}",
+                #maxi_hr_name))
 
-    data %<>% mutate(BandId = fct_recode(BandId,!!!levels))
+    levels <- cc("2-4", "15-50", "10-20 / 2-4") %>%
+            set_names(cc("MAXI 2$-$4 keV","BAT 15$-$50 keV", maxi_hr_name))
+
+    data %<>% mutate(BandId = fct_recode(BandId, !!!levels))
 
     data %>%
         filter(BandId != maxi_hr_name) %>%
         mutate(BandId = fct_drop(BandId)) %>%
-        group_split(BandId) %>%
-        map(filter, Data - Err > 1e-4) %>%
-        bind_rows %>%
+        filter(Data - Err > 1e-4) %>%
         ggplot(aes(
                 x = MJD, y = Data,
-                ymin = Data - Err, ymax = Data + Err)) +
+                ymin = Data - Err, ymax = Data + Err,
+                shape = BandId)) +
             coord_sci(xlim = rng, clip = "off") +
             theme_sci(
                 ticks = -u_(5 ~ pt),
                 text.size = Style_TickFontSz,
                 title.size = Style_TickFontSz,
+                legend.position = cc(1, 1),
+                legend.justification = cc(1, 1.05),
+                legend.text = element_text(size = 0.65 * Style_TickFontSz),
                 facet.lab.x = npc_(0.03),
                 facet.lab.y = npc_(0.88)) +
-            geom_pointrange(size = 0.2) +
+            geom_pointrange(size = 0.3) +
             geom_polygon(
                 aes(x, y, fill = Group),
                 alpha = 0.4,
                 show.legend = FALSE,
                 data = dates, inherit.aes = FALSE) +
             scale_fill_manual(values = col_pal) +
+            scale_shape_manual(values = c(19, 1), guide = guide_legend(title = "X-ray flux")) +
             scale_x_sci(
                 name = NULL, limits = rng,
                 labels = function(x) rep(" ", len(x)),
@@ -121,10 +129,8 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
             scale_y_log10_sci(
                 name = NULL,
                 sec.axis = dup_axis_sci_weak(),
-                labels = function(x) as.character(RLibs::glue_fmt("{x:%g}"))) +
-            facet_sci(
-                vars(BandId),
-                scales = "free_y") -> plt_1
+                labels = function(x) as.character(RLibs::glue_fmt("{x:%g}"))) -> plt_1
+
     data %>%
         filter(BandId == maxi_hr_name) %>%
         mutate(BandId = fct_drop(BandId)) -> hardness_ratio
@@ -161,29 +167,28 @@ plot_x_ray <- function(data, dates_input = dates_range()) {
                         data = dates, inherit.aes = FALSE) +
                 scale_fill_manual(values = col_pal, guide = guide_legend(title = "")) +
                 scale_x_sci(sec.axis = dup_axis_sci_weak()) +
-                scale_y_sci(name = NULL, sec.axis = dup_axis_sci_weak()) +
-                facet_sci(
-                    vars(BandId),
-                    scales = "free_y",
-                    panel.labeller = ~"(c)") -> plt_2
+                scale_y_sci(name = "Name", sec.axis = dup_axis_sci_weak()) -> plt_3#+
+                #facet_sci(
+                    #vars(BandId),
+                    #scales = "free_y",
+                    #panel.labeller = ~"(c)") -> plt_3
 
     plt_1 %<>%
         postprocess_axes(
             axes_margin = mar_(0.75 ~ cm, 0.25 ~ cm, 0 ~ npc, 1.2 ~ cm),
-            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1.8 ~ cm))
+            text_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 0.8 ~ cm))
 
-    pos <- get_grobs_layout(plt_1, "axis-t-1-1")[[1]]
+    #pos <- get_grobs_layout(plt_1, "axis-t-1-1")[[1]]
 
-    plt_1 <- gtable::gtable_add_grob(
-            plt_1, text_grob, pos[3], pos[1],
-            clip = "off",
-            name = "top-labels")
+    #plt_1 <- gtable::gtable_add_grob(
+            #plt_1, text_grob, pos[3], pos[1],
+            #clip = "off",
+            #name = "top-labels")
     
-    plt_2 %<>% postprocess_axes(
+    plt_3 %<>% postprocess_axes(
             axes_margin = mar_(0 ~ npc, 0.25 ~ cm, 0.5 ~ cm, 1.2 ~ cm),
-            strip_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1.8 ~ cm),
-            text_margin = mar_(0 ~ npc, 0 ~ npc, 0.7 ~ cm, 0 ~ npc))
-    gridExtra::arrangeGrob(plt_1, plt_2, ncol = 1, heights = u_(0.63 ~ null, 0.37 ~ null)) -> tbl
+            text_margin = mar_(0 ~ npc, 0 ~ npc, 0.7 ~ cm, 0.8 ~ cm))
+    gridExtra::arrangeGrob(plt_1, plt_3, ncol = 1, heights = u_(0.5 ~ null, 0.5 ~ null)) -> tbl
 
     grid.newpage()
     grid.draw(tbl)
