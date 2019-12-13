@@ -129,7 +129,7 @@ plot_x_ray <- function(
             labels = function(x) rep(" ", len(x)),
             sec.axis = dup_axis_sci_weak()) +
         scale_y_log10_sci(
-            name = "Name",
+            name = "X-ray flux,\ncts~cm$^{-2}$~s$^{-1}$",
             sec.axis = dup_axis_sci_weak(),
             labels = function(x) as.character(RLibs::glue_fmt("{x:%g}"))) +
         annotation_custom(
@@ -161,10 +161,10 @@ plot_x_ray <- function(
         geom_pointrange(size = 0.3) +
         coord_sci(xlim = rng) +
         scale_x_sci(name = NULL, sec.axis = dup_axis_sci_weak()) +
-        scale_y_reverse(name = "Name") +
+        scale_y_reverse(name = "AAVSO V") +
         scale_fill_manual(values = col_pal) +
-        scale_shape_manual(values = cc(1, 19)) +
-        scale_color_manual(values = cc("#000000", "#000000")) +
+        scale_shape_manual(values = cc(1, 19), guide = guide_legend(title = "")) +
+        scale_color_manual(values = cc("#000000", "#000000"), guide = guide_legend(title = "")) +
         annotation_custom(
             textGrob("(b)",
                 x = npc_(0.03), y = npc_(0.88),
@@ -205,7 +205,7 @@ plot_x_ray <- function(
         geom_pointrange(size = 0.2) +
         scale_fill_manual(values = col_pal, guide = guide_legend(title = "")) +
         scale_x_sci(sec.axis = dup_axis_sci_weak()) +
-        scale_y_sci(name = "Name", sec.axis = dup_axis_sci_weak()) +
+        scale_y_sci(name = "MAXI HR\n\\tiny{$\\frac{10-20~\\mathrm{keV}}{2-4~\\mathrm{keV}}$}", sec.axis = dup_axis_sci_weak()) +
         annotation_custom(
                 textGrob("(c)",
                 x = npc_(0.03), y = npc_(0.88),
@@ -214,7 +214,7 @@ plot_x_ray <- function(
     plt_1 %<>%
         postprocess_axes(
             axes_margin = mar_(0.75 ~ cm, 0.25 ~ cm, 0 ~ npc, 1.2 ~ cm),
-            text_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 0.8 ~ cm))
+            text_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1.8 ~ cm))
 
     pos <- get_grobs_layout(plt_1, "axis-t")[[1]]
 
@@ -225,11 +225,11 @@ plot_x_ray <- function(
 
     plt_2 %<>% postprocess_axes(
             axes_margin = mar_(0 ~ npc, 0.25 ~ cm, 0 ~ npc, 1.2 ~ cm),
-            text_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 0.8 ~ cm))
+            text_margin = mar_(0 ~ npc, 0 ~ npc, 0 ~ npc, 1.8 ~ cm))
 
     plt_3 %<>% postprocess_axes(
             axes_margin = mar_(0 ~ npc, 0.25 ~ cm, 0.5 ~ cm, 1.2 ~ cm),
-            text_margin = mar_(0 ~ npc, 0 ~ npc, 0.7 ~ cm, 0.8 ~ cm))
+            text_margin = mar_(0 ~ npc, 0 ~ npc, 0.7 ~ cm, 1.8 ~ cm))
     gridExtra::arrangeGrob(plt_1, plt_2, plt_3, ncol = 1,
         heights = u_(0.33 ~ null, 0.33 ~ null, 0.33 ~ null)) -> tbl
 
@@ -321,13 +321,13 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     tic()
     file_path <- fs::path("Output", "Plots", "x-ray.tex")
 
-    #tikz(file_path,
-        #width = 8, height = 5,
-        #standAlone = TRUE)
-    #tryCatch(
-        { read_x_rays() %>% transform_x_ray() %>% plot_x_ray() }#,
-        #finally = dev.off())
+    tikz(file_path,
+        width = 8, height = 5,
+        standAlone = TRUE)
+    tryCatch(
+        { read_x_rays() %>% transform_x_ray() %>% plot_x_ray() },
+        finally = dev.off())
 
-    #tex_2_pdf(file_path)
+    tex_2_pdf(file_path)
     toc()
 }
