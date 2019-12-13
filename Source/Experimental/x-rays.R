@@ -116,12 +116,12 @@ plot_x_ray <- function(
             legend.position = cc(1, 1),
             legend.justification = cc(1, 0.85),
             legend.text = element_text(size = 0.65 * Style_TickFontSz)) +
-        geom_pointrange(size = 0.3) +
         geom_polygon(
             aes(x, y, fill = Group),
             alpha = 0.4,
             show.legend = FALSE,
             data = dates, inherit.aes = FALSE) +
+        geom_pointrange(size = 0.3) +
         scale_fill_manual(values = col_pal) +
         scale_shape_manual(values = c(19, 1), guide = guide_legend(title = "")) +
         scale_x_sci(
@@ -139,22 +139,32 @@ plot_x_ray <- function(
 
     plt_2 <- aavso_data %>%
         filter_range(MJD, rng) %>%
-        filter(Filter %==% "V", Err < 0.3) %>%
+        average_aavso %>%
+        filter(Filter %vec_in% cc("CV", "V")) %>%
+        mutate(Filter = fct_recode(Filter, `Johnson V` = "V", `Wide band V` = "CV")) %>%
         ggplot_sci(aes(x = MJD, y = Mag,
-            ymin = Mag - Err, ymax = Mag + Err)) +
-        theme_sci(ticks = -u_(5 ~ pt),
+            ymin = Mag - Err, ymax = Mag + Err,
+            shape = Filter, color = Filter)) +
+        theme_sci(
+            ticks = -u_(5 ~ pt),
             text.size = Style_TickFontSz,
-            title.size = Style_TickFontSz) +
-        geom_pointrange() +
+            title.size = Style_TickFontSz,
+            legend.key = element_blank(),
+            legend.position = cc(1, 1),
+            legend.justification = cc(1, 0.85),
+            legend.text = element_text(size = 0.65 * Style_TickFontSz)) +
         geom_polygon(
             aes(x, y_hr, fill = Group),
             alpha = 0.4,
             show.legend = FALSE,
             data = dates, inherit.aes = FALSE) +
+        geom_pointrange(size = 0.3) +
         coord_sci(xlim = rng) +
         scale_x_sci(name = NULL, sec.axis = dup_axis_sci_weak()) +
         scale_y_reverse(name = "Name") +
         scale_fill_manual(values = col_pal) +
+        scale_shape_manual(values = cc(1, 19)) +
+        scale_color_manual(values = cc("#000000", "#000000")) +
         annotation_custom(
             textGrob("(b)",
                 x = npc_(0.03), y = npc_(0.88),
@@ -188,11 +198,11 @@ plot_x_ray <- function(
             text.size = Style_TickFontSz,
             title.size = Style_TickFontSz,
             legend.justification = cc(1.125, -0.05)) +
-        geom_pointrange(size = 0.2) +
         geom_polygon(
                 aes(x, y_hr, group = Group, fill = Group),
                 alpha = 0.4,
                 data = dates, inherit.aes = FALSE) +
+        geom_pointrange(size = 0.2) +
         scale_fill_manual(values = col_pal, guide = guide_legend(title = "")) +
         scale_x_sci(sec.axis = dup_axis_sci_weak()) +
         scale_y_sci(name = "Name", sec.axis = dup_axis_sci_weak()) +
@@ -304,68 +314,6 @@ dates_range <- function(pattern = "data_") {
                   Lower = map_dbl(value, 1L),
                   Upper = map_dbl(value, 2L))
 }
-
-### TODO: move to {RLibs}
-left_join_condition <- function(left, right, ...,
-    .type = "first", .suffix = c("__l", "__r"), .enforce_suffix = FALSE) {
-    cond <- enquos(...)
-
-    if (vec_is(.type, character(), 1L)) {
-        .type <- tolower(.type)
-        if (.type == "first")
-            selector <- function(x) head(x, 1)
-        else if (.type == "last")
-            selector <- function(x) tail(x, 1)
-        else
-            abort("Error", "maxi2_invalid_argument")
-    }
-    else
-        selector <- as_function(.type)
-
-    cond <- map(cond, function(cnd) {
-        if (!quo_is_call(cnd))
-            abort("Error", "maxi2_invalid_argument")
-
-        expr <- quo_get_expr(cnd)
-        expr <- expr(outer(!!expr[[2]], !!expr[[3]], !!expr[[1]]))
-        quo_set_expr(cnd, expr)
-    })
-
-
-    cond %>%
-        map(eval_tidy, list(.x = left, .y = right)) %>%
-        reduce(`&`) -> match
-
-    match
-    match %>% apply(1, function(x) which(x)) -> indices
-
-    indices %>% map_int(~ if(vec_is_empty(.x)) NA_integer_ else selector(.x)) -> indices
-    right <- right[indices,]
-
-    if (.enforce_suffix) {
-        left <- set_names(left, paste0(names(left), .suffix[1]))
-        right <- set_names(right, paste0(names(right), .suffix[2]))
-    }
-    else {
-        common_names <- which(vec_in(names(right), names(left)))
-        if (!vec_is_empty(common_names)) {
-            left <- set_names(left,
-                flatten_chr(map_at(
-                    names(left),
-                    which(vec_in(names(left), names(right)[common_names])),
-                    paste0, .suffix[1])))
-            right <- set_names(right,
-                flatten_chr(map_at(
-                    names(right),
-                    common_names,
-                    paste0, .suffix[2])))
-        }
-
-    }
-
-    bind_cols(left, right)
-}
-
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
 
