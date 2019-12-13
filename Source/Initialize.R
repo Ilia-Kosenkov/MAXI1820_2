@@ -72,6 +72,21 @@ len <- vctrs::vec_size
         mutate(Freq = Const.c / (WL * 1e-8))
 }
 
+.read_aavso <- function(path = fs::path("Input", "Temp", "Raw")) {
+    files <- fs::dir_ls(path, glob = "*csv")
+
+    data <- files %>%
+        map(read_csv, col_types = cols(
+            "d", "d", "d", "d", "c", "c", "c", "c",
+            "c", "c", "c", "i", "d", "c", "d", "d",
+            "d", "c", "c", "c", "c", "c", "c", "c"
+        )) %>%
+        bind_rows %>%
+        transmute(JD, Mag = Magnitude, Err = Uncertainty, Filter = as_factor(Band)) %>%
+        mutate(MJD = JD - 2400000.5) %>%
+        filter_range(MJD, cc(58000, 58500))
+}
+
 .ReadData_0 <- function(path = fs::path("Input", "maxi1820_0")) {
     files <- fs::dir_ls(path, glob = "*.csv")
     
@@ -222,7 +237,7 @@ if (!(get0("ShouldRun", ifnotfound = FALSE))) {
     assign("data_1", .ReadData_1(), .GlobalEnv)
     assign("data_2", .ReadData_2(), .GlobalEnv)
     assign("data_3", .ReadData_3(), .GlobalEnv)
-
+    assign("aavso_data", .read_aavso(), .GlobalEnv)
     assign("field_stars", .ReadFieldStars(), .GlobalEnv)
     options(.IsInitialized = TRUE)
 }
