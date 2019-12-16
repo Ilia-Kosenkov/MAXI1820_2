@@ -94,8 +94,7 @@ len <- vctrs::vec_size
         map_chr(~glue("maxi?[0-9]+{tolower(.x)}[0-9]+\\.csv")) %>%
         map(~files[str_detect(files, .x)]) %>%
         map(~map(.x, ~ mutate(read_csv(.x, col_types = cols()),
-            Path = !!.x
-            ))) %>%
+            Path = !!.x))) %>%
         map(bind_rows) %>%
         map(set_names, cc("JD", "Ref", "Obs", "Path")) %>%
         map(mutate, MJD = JD - 2400000.5) %>%
