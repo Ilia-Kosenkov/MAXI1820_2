@@ -139,7 +139,7 @@ plot_x_ray <- function(
 
     plt_2 <- aavso_data %>%
         filter_range(MJD, rng) %>%
-        average_aavso %>%
+        rebin_aavso %>%
         filter(Filter %vec_in% cc("CV", "V")) %>%
         mutate(Filter = fct_recode(Filter, `Johnson V` = "V", `Wide band V` = "CV")) %>%
         ggplot_sci(aes(x = MJD, y = Mag,
@@ -161,7 +161,7 @@ plot_x_ray <- function(
         geom_pointrange(size = 0.3) +
         coord_sci(xlim = rng) +
         scale_x_sci(name = NULL, sec.axis = dup_axis_sci_weak()) +
-        scale_y_reverse(name = "AAVSO V") +
+        scale_y_rev_sci(name = "AAVSO V", sec.axis = dup_axis_sci_weak()) +
         scale_fill_manual(values = col_pal) +
         scale_shape_manual(values = cc(1, 19), guide = guide_legend(title = "")) +
         scale_color_manual(values = cc("#000000", "#000000"), guide = guide_legend(title = "")) +
