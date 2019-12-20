@@ -4,6 +4,9 @@ wind_data <- function() {
     # 0h Nov 17, 1858 
     mjd_zero <- ymd_hms("1858-11-17 00:00:00")
 
+    # From Munoz-Darias et al., 2019, ApJ L, 879, 4
+    # https://ui.adsabs.harvard.edu/#abs/2019ApJ...879L...4M/abstract
+
     tribble(~Time, ~ Telescope, ~ State, ~ He_I, ~ Ha,
             "2018-03-15 14:46", "Keck", "Hard", NA,     "PCyg",
             "2018-03-16 14:46", "VLT",  "Hard", "PCyg", "PCyg",
@@ -45,8 +48,9 @@ wind_data <- function() {
     ) %>%
         mutate(
             Time = ymd_hm(Time),
-            MJD = as.duration(Time - mjd_zero) / as.duration(days(1))) %>% 
-        mutate_at(vars(Telescope, State, He_I, Ha), as_factor)
+            MJD = as.duration(Time - mjd_zero) / as.duration(days(1)),
+            HasWind = if_else(!is.na(He_I) | !is.na(Ha), "wind", "no-wind")) %>% 
+        mutate_at(vars(Telescope, State, He_I, Ha, HasWind), as_factor)
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
