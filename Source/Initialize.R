@@ -227,9 +227,6 @@ if (exists("ShouldRun", envir = .GlobalEnv) &&
 
 }
 
-# Bypassing exporting issues
-#`%&%` <- RLibs::`%+%`
-
 if (!(get0("ShouldRun", ifnotfound = FALSE))) {
     .Initialize()
     assign("data_0", .ReadData_0(), .GlobalEnv)
