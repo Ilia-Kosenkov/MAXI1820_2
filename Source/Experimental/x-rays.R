@@ -47,7 +47,7 @@ transform_x_ray <- function(data, extra_band = cc("2-4", "15-50")) {
 
     data %>%
         filter(BandId %vec_in% extra_band) %>%
-        vec_rbind(hardness_ratio)
+        bind_rows(hardness_ratio)
 
         #bind_rows(
             #mutate(upper, BandId = fct_get(BandId)),
@@ -62,7 +62,9 @@ transform_x_ray <- function(data, extra_band = cc("2-4", "15-50")) {
 plot_x_ray <- function(
     data,
     dates_input = dates_range(),
-    aavso = aavso_data) {
+    aavso = aavso_data,
+    wind = wind_data()) {
+
     dates <- dates_input %>%
         pivot_longer(c(-Group)) %>%
         vec_repeat(each = 2) %>%
@@ -86,17 +88,40 @@ plot_x_ray <- function(
         grid:::unit.list.from.list(labels_data$Y),
         gp = gpar(fontsize = Style_TickFontSz))
 
-    #maxi_hr_name <- "\\small{MAXI HR}\n\\tiny{$\\frac{10-20~\\mathrm{keV}}{2-4~\\mathrm{keV}}$}"
+
+    aavso_reb <- aavso %>% filter_range(MJD, rng) %>% rebin_aavso
+
     maxi_hr_name <- "hr"
-    #levels <- cc("2-4", "15-50", "10-20 / 2-4") %>%
-                #set_names(cc(
-                          #"\\small{MAXI 2$-$4 keV}\n\\small{cts~cm~s$^{-2}$}",
-                          #"\\small{BAT 15$-$50 keV}\n\\small{cts~cm~s$^{-2}$}",
-                #maxi_hr_name))
 
     levels <- cc("2-4", "15-50", "10-20 / 2-4") %>%
             set_names(cc("MAXI 2$-$4 keV","BAT 15$-$50 keV", maxi_hr_name))
 
+    #xr_wind <-
+        #right_join_cnd(filter(data, BandId %==% "15-50"), wind, abs(.x$MJD - .y$MJD) < 0.5) %>%
+        #transmute(
+            #MJD = MJD__r,
+            #MJD_end = MJD__r,
+            #Pos = 10 ^ (log10(Data - Err) - 0.5),
+            #Pos_inb = 10 ^ (log10(Data - Err) - 0.55),
+            #Pos_end = 10 ^ (log10(Data - Err) - 2),
+            #He_I, Ha,
+            #HasWind)
+
+    onir_wind <-
+        right_join_cnd(
+            filter(aavso_reb, Filter %vec_in% cc("CV", "V")),
+            wind,
+            abs(.x$MJD - .y$MJD) < 0.49) %>%
+        transmute(
+            MJD = MJD__r,
+            MJD_end = MJD__r,
+            Off = Mag + Err,
+            He_I, Ha,
+            HasWind) %>%
+        mutate(Off = if_else(is.nan(Off), 0.5 * (lag(Off) + lead(Off)), Off)) %>%
+        slice(unique_which_f(MJD)) %>%
+        mutate(Pos = Off + 0.65, Pos_inb = Off + 0.7, Pos_end = Off + 1.5)
+    
     data %<>% mutate(BandId = fct_recode(BandId, !!!levels))
 
     plt_1 <- data %>%
@@ -122,8 +147,20 @@ plot_x_ray <- function(
             show.legend = FALSE,
             data = dates, inherit.aes = FALSE) +
         geom_pointrange(size = 0.3) +
+        #geom_segment(
+            #aes(x = MJD, xend = MJD_end, y = Pos_inb, yend = Pos_end, linetype = HasWind),
+            #data = xr_wind,
+            #size = 1, lineend = "butt", linejoin = "mitre",
+            #inherit.aes = FALSE) +
+        #geom_segment(
+            #aes(x = MJD, xend = MJD_end, y = Pos, yend = Pos_inb),
+            #data = xr_wind,
+            #size = 1, lineend = "butt", linejoin = "mitre",
+            #arrow = arrow(length = u_(5 ~ pt), ends = "first"),
+            #inherit.aes = FALSE) +
         scale_fill_manual(values = col_pal) +
         scale_shape_manual(values = c(19, 1), guide = guide_legend(title = "")) +
+        #scale_linetype_manual(values = c(1, 3), guide = NULL) +
         scale_x_sci(
             name = NULL, limits = rng,
             labels = function(x) rep(" ", len(x)),
@@ -137,14 +174,15 @@ plot_x_ray <- function(
                 x = npc_(0.03), y = npc_(0.88),
                 gp = gpar(fontsize = Style_LabelFontSz)))
 
-    plt_2 <- aavso_data %>%
-        filter_range(MJD, rng) %>%
-        rebin_aavso %>%
+    plt_2 <- #aavso_data %>%
+    #filter_range(MJD, rng) %>%
+        #rebin_aavso %>%
+        aavso_reb %>% 
         filter(Filter %vec_in% cc("CV", "V")) %>%
         mutate(Filter = fct_recode(Filter, `Johnson V` = "V", `Wide band V` = "CV")) %>%
         ggplot_sci(aes(x = MJD, y = Mag,
             ymin = Mag - Err, ymax = Mag + Err,
-            shape = Filter, color = Filter)) +
+            shape = Filter)) +
         theme_sci(
             ticks = -u_(5 ~ pt),
             text.size = Style_TickFontSz,
@@ -158,13 +196,26 @@ plot_x_ray <- function(
             alpha = 0.4,
             show.legend = FALSE,
             data = dates, inherit.aes = FALSE) +
+        geom_segment(
+            aes(x = MJD, xend = MJD_end, y = Pos_inb, yend = Pos_end,
+                linetype = HasWind, col = HasWind),
+            data = onir_wind,
+            size = 1, lineend = "butt", linejoin = "mitre",
+            inherit.aes = FALSE) +
+        geom_segment(
+            aes(x = MJD, xend = MJD_end, y = Pos, yend = Pos_inb, col = HasWind),
+            data = onir_wind,
+            size = 1, lineend = "butt", linejoin = "mitre",
+            arrow = arrow(length = u_(7 ~ pt), ends = "first"),
+            inherit.aes = FALSE) +
         geom_pointrange(size = 0.3) +
         coord_sci(xlim = rng) +
         scale_x_sci(name = NULL, sec.axis = dup_axis_sci_weak()) +
         scale_y_rev_sci(name = "AAVSO V", sec.axis = dup_axis_sci_weak()) +
+        scale_linetype_manual(values = c(1, 2), guide = NULL) +
+        scale_color_manual(values = cc("#C00000", "#0F0F0F"), guide = NULL) +
         scale_fill_manual(values = col_pal) +
         scale_shape_manual(values = cc(1, 19), guide = guide_legend(title = "")) +
-        scale_color_manual(values = cc("#000000", "#000000"), guide = guide_legend(title = "")) +
         annotation_custom(
             textGrob("(b)",
                 x = npc_(0.03), y = npc_(0.88),
@@ -327,6 +378,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     tryCatch(
         { read_x_rays() %>% transform_x_ray() %>% plot_x_ray() },
         finally = dev.off())
+
 
     tex_2_pdf(file_path)
     toc()
