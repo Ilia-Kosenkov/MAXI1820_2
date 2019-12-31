@@ -173,13 +173,13 @@ plot_x_ray <- function(
             textGrob("(a)",
                 x = npc_(0.03), y = npc_(0.88),
                 gp = gpar(fontsize = Style_LabelFontSz)))
-
     plt_2 <- #aavso_data %>%
     #filter_range(MJD, rng) %>%
         #rebin_aavso %>%
-        aavso_reb %>% 
-        filter(Filter %vec_in% cc("CV", "V")) %>%
-        mutate(Filter = fct_recode(Filter, `Johnson V` = "V", `Wide band V` = "CV")) %>%
+        aavso_reb %>%
+        filter(Filter == "V") %>%
+        #filter(Filter %vec_in% cc("CV", "V")) %>%
+        #mutate(Filter = fct_recode(Filter, `Johnson V` = "V", `Wide band V` = "CV")) %>%
         ggplot_sci(aes(x = MJD, y = Mag,
             ymin = Mag - Err, ymax = Mag + Err,
             shape = Filter)) +
@@ -211,11 +211,11 @@ plot_x_ray <- function(
         geom_pointrange(size = 0.3) +
         coord_sci(xlim = rng) +
         scale_x_sci(name = NULL, sec.axis = dup_axis_sci_weak()) +
-        scale_y_rev_sci(name = "AAVSO V", sec.axis = dup_axis_sci_weak()) +
+        scale_y_rev_sci(name = "AAVSO $V$", sec.axis = dup_axis_sci_weak()) +
         scale_linetype_manual(values = c(1, 2), guide = NULL) +
         scale_color_manual(values = cc("#C00000", "#0F0F0F"), guide = NULL) +
         scale_fill_manual(values = col_pal) +
-        scale_shape_manual(values = cc(1, 19), guide = guide_legend(title = "")) +
+        scale_shape_manual(values = cc(19, 1), guide = NULL) + #guide_legend(title = "")) +
         annotation_custom(
             textGrob("(b)",
                 x = npc_(0.03), y = npc_(0.88),
@@ -361,7 +361,7 @@ dates_range <- function(pattern = "data_") {
         map(range) %>%
         map(subtract, 2400000.5) %>%
         enframe(NULL) %>%
-        transmute(Group = as_factor(cc("BrH", "HIM", "Soft", "DH")),
+        transmute(Group = as_factor(cc("RH", "HIM", "Soft", "DH")),
                   Lower = map_dbl(value, 1L),
                   Upper = map_dbl(value, 2L))
 }
