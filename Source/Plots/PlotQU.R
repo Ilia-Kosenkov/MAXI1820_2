@@ -166,20 +166,20 @@ PlotQU <- function(data,
             #gp = gpar(fontsize = Style_TickFontSz))
 }
 
-#if (get0("ShouldRun", ifnotfound = FALSE)) {
-if (FALSE) {
-    grps <- cc(0, 1, 2, 3)
+if (get0("ShouldRun", ifnotfound = FALSE)) {
+#if (FALSE) {
+    grps <- cc("0", "1", "2", "3")
     bndOrder <- Bands %>% pull(Band)
     dt <- ReadAllAvgData(
             pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder]
     field <- AverageFieldStars()[bndOrder]
 
     data <- dt %>%
-        SubtractISM(field, .propagate_errors = FALSE) %>%                        # Comment for normal plot
+        SubtractISM(field, .propagate_errors = FALSE) %>% # Comment for normal plot
         bind_rows %>%
         inner_join(select(Bands, Band, ID), by = "Band") %>%
         mutate_at(vars(ID, Group, Band), as_factor) %>%
-        filter(Group %in% grps)
+        filter(Group %vec_in% grps)
 
     plt <- data %>% PlotQU(Px, Py,
             group = ID,
