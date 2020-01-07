@@ -21,12 +21,13 @@
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 StrExtractNamedGroups <- function(string, pattern) {
-    grpNames <- str_match_all(pattern, "\\(?<(.*?)>")[[1]][, 2]
-    res <- str_match_all(string, pattern) %>%
+    grp_names <- str_match_all(pattern, "\\(?<(.*?)>")[[1]][, 2]
+
+    func <- compose(~vec_cast(.x, list()), repair_names, ~tibble(!!!.x), .dir = "forward")
+
+    str_match_all(string, pattern) %>%
         map2(string, ~ c(.y, .x)) %>%
         discard(~length(.x) <= 1L) %>%
-        BindRows %>%
-        as_tibble(.name_repair = "universal") %>%
-        suppressMessages %>%
-        set_names(c("Src", "Match", grpNames))
+        map_dfr(func) %>%
+        set_names(c("Src", "Match", grp_names))
 }
