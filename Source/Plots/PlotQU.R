@@ -24,7 +24,7 @@ PlotQU <- function(data,
         q, u, qmin, qmax, umin, umax,
         group,
         shape_group = Group,
-        isTex = FALSE, plotGrid = FALSE) {
+        is_tex = FALSE, plot_grid = FALSE, grid_cross = NULL) {
     require(sciplotr)
     q <- ensym(q)
     u <- ensym(u)
@@ -54,7 +54,7 @@ PlotQU <- function(data,
     labs_offset_1 <- cc(-1, 2, 0.5, -1)[u_ids]
     labs_offset_2 <- cc(0, 0, 2, 1)[u_ids]
 
-    arrowData <- data %>%
+    arrow_data <- data %>%
         select(!!q, !!u, !!group) %>%
         group_split({{ group }}) %>%
         map(ModifySegemnts, x = !!q, y = !!u, shift = subtr) %>%
@@ -84,7 +84,7 @@ PlotQU <- function(data,
     xrng %<>% expand_interval(factor = width / diff(xrng) - 1)
     yrng %<>% expand_interval(factor = width / diff(yrng) - 1)
 
-    if (plotGrid) {
+    if (plot_grid) {
         p <- p +
             geom_segment(
                 aes(x = x, xend = xend, y = y, yend = yend),
@@ -93,6 +93,21 @@ PlotQU <- function(data,
                     y = cc(0, -Inf), yend = cc(0, Inf)),
                 inherit.aes = FALSE,
                 alpha = Style_AlphaBackground, size = Style_LineSize)
+
+        if (!is_null(grid_cross))
+            p <- p +
+                geom_errorbar(
+                    aes(x = Px, y = Py, ymin = Py - SG, ymax = Py + SG),
+                    data = grid_cross,
+                    inherit.aes = FALSE,
+                    width = 0.01,
+                    size = 1) +
+                        geom_errorbarh(
+                    aes(x = Px, y = Py, xmin = Px - SG, xmax = Px + SG),
+                    data = grid_cross,
+                    inherit.aes = FALSE,
+                    height = 0.01,
+                    size = 1)
     }
     p <- p +
         geom_errorbarh(size = Style_ErrorBarSize, height = 0) +
@@ -130,40 +145,28 @@ PlotQU <- function(data,
                 y = !!u, yend = !!u_end,
                 col = !!group,
                 linetype = NULL),
-            arrowData,
+            arrow_data,
             inherit.aes = FALSE,
             size = Style_LineSize,
             arrow = arrow(length = Style_ArrowLength)) +
         theme_sci(text.size = Style_TickFontSz,
                   title.size = Style_LabelFontSz) +
-        #DefaultTheme(
-            #textSz = Style_TickFontSz,
-            #titleSz = Style_LabelFontSz) +
-        #coord_sci(clip = "off",
-            #xlim = xrng, ylim = yrng, expand = FALSE) +
         scale_x_sci(
             name =
-                if (isTex)
+                if (is_tex)
                     "$q_{BVR}$ (\\%)"
                 else
                     expression(italic(q[BVR]) ~ "(%)"),
             sec.axis = dup_axis_sci_weak()) +
         scale_y_sci(
             name =
-                if (isTex)
+                if (is_tex)
                     "$u_{BVR}$ (\\%)"
                 else
                     expression(italic(u[BVR]) ~ "(%)"),
             sec.axis = dup_axis_sci_weak())
 
-
-    #p %>%
-        #LinearScaleTicks(
-            #rng = xrng, side = "x",
-            #gp = gpar(fontsize = Style_TickFontSz)) %>%
-        #LinearScaleTicks(
-            #rng = yrng, side = "y",
-            #gp = gpar(fontsize = Style_TickFontSz))
+    return(p)
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
@@ -174,6 +177,13 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
             pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder]
     field <- AverageFieldStars()[bndOrder]
 
+    field_pol <- field %>%
+        map(select, Px, Py, SG) %>%
+        imap_dfr(~mutate(.x, Filter = as_factor(.y))) %>%
+        mutate(Px = 0, Py = 0) %>%
+        arrange(desc(SG)) %>%
+        slice(1L)
+
     data <- dt %>%
         SubtractISM(field, .propagate_errors = FALSE) %>% # Comment for normal plot
         bind_rows %>%
@@ -183,8 +193,9 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
 
     plt <- data %>% PlotQU(Px, Py,
             group = ID,
-            plotGrid = TRUE,                          # Comment for normal plot
-            isTex = TRUE)# %>%
+            plot_grid = TRUE,                          # Comment for normal plot
+            is_tex = TRUE,
+            grid_cross = field_pol)# %>%
         #GGPlotPanelLabs("d", hjust = 3, vjust = 2,    # Comment for normal plot
             #gp = gpar(fontsize = Style_LabelFontSz))  # Comment for normal plot
 
