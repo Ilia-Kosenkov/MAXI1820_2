@@ -192,11 +192,6 @@ if (exists("ShouldRun", envir = .GlobalEnv) &&
 }
 
 .GetTopology <- function() {
-    #wrks <- .GetChildWorkers()
-    #if (length(wrks) != 1)
-        #wrks <- wrks[-length(wrks)]
-
-    #wrks
     lifecycle::deprecate_warn("0.0", ".GetTopology()", "RLibs::get_topology()")
     RLibs::get_topology()
 }
@@ -204,27 +199,6 @@ if (exists("ShouldRun", envir = .GlobalEnv) &&
 .PlanCL <- function(...) {
     lifecycle::deprecate_warn("0.0", ".PlanCL()", "RLibs::plan_cluster()")
     RLibs::plan_cluster(...)
-    #args <- list(...) %>%
-        #map_int(as_integer)
-    #if (is_empty(args) || some(args, ~ .x == 0L))
-        #stop("Cannot create empty cluster")
-    #if (some(args, ~ .x == 1L) && length(args) != 1L)
-        #stop("Cannot have 1-proc-sized clusters")
-
-
-    #topology <- .GetTopology()
-
-    #if (length(args) != length(topology) || !all(args == topology)) {
-        #args %>% map(function(sz) {
-            #if (sz == 1L)
-                #return(tweak(future::sequential))
-            #else
-                #return(tweak(future::cluster, workers = sz))
-            #}) %>% plan
-    #}
-
-    #message(glue("Cluster: [{glue_collapse(.GetTopology(), sep = \", \")}]"))
-
 }
 
 if (!(get0("ShouldRun", ifnotfound = FALSE))) {
