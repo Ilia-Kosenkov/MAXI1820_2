@@ -9,39 +9,33 @@ average_and_correct <- function(data, corr) {
         merge_and_enumerate
 }
 
-## TODO : move to RLibs
-list_collapse <- function(data, to = Name, ptype = factor()) {
-    imap_dfr(data, ~ mutate(.x, {{ to }} := vec_cast(.y, ptype)))
-}
 
-## TODO : move to RLibs
-map_lo <- function(.x, .f, ...) {
-    list_of(!!!map(.x, .f, ...))
-}
 
 average_and_correct_field <- function(data = AverageFieldStars()) {
     data %>%
-        list_collapse(to = Filter) %>%
+        list_collapse_dfr(to = Filter) %>%
         select(Filter, JD, Px, Py, P, SG, A, SG_A, N) %>%
         mutate(
             S = (N - 1) * SG ^ 2,
-            Q = map(S, ~ matrix(cc(.x, 5e-3, .x, 5e-3), byrow = TRUE, nrow = 2))) %>%
+            Q = map_lo(S, ~ matrix(cc(.x, 5e-3, .x, 5e-3), byrow = TRUE, nrow = 2))) %>%
         select(-S)
 }
 
 merge_and_enumerate <- function(data) {
-    map(data, mutate, ID = 1:n()) %>% list_collapse(to = Filter)
+    map(data, mutate, ID = 1:n()) %>% list_collapse_dfr(to = Filter)
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
     #data("BandInfo", package = "Dipol2Red")
 
     average_and_correct(data_2, BandInfo) -> d_0
-    #average_and_correct(data_3, BandInfo) -> d_1
     average_and_correct_field() -> d_1
-    print(d_0)
+    print(d_0 %>% select(Filter, JD, Px, Py, P, SG, A, SG_A, N, Q))
     print(d_1)
 
+    #h_test2(d_0, d_1, id = Filter) %>% print
     h_test2(d_0, d_1, id = Filter) %>% print
 
+
 }
+
