@@ -5,7 +5,12 @@ average_and_correct <- function(data, corr) {
         map(select, Px, Py, Angle) %>%
         map(as.list) -> corr
 
-    map(set_names(names(avg)), ~ exec(correct_pol, !!!set_names(append(avg[.x], corr[[.x]]), NULL)))
+    map(set_names(names(avg)), ~ exec(correct_pol, !!!set_names(append(avg[.x], corr[[.x]]), NULL))) %>%
+        merge_and_enumerate
+}
+
+merge_and_enumerate <- function(data) {
+    imap_dfr(data, ~ mutate(.x, Filter = as_factor(.y), ID = 1:n()))
 }
 
 if (get0("ShouldRun", ifnotfound = FALSE)) {
@@ -14,7 +19,5 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     average_and_correct(data_2, BandInfo) -> d_0
     average_and_correct(data_3, BandInfo) -> d_1
 
-    set_names(cc("B", "V", "R")) %>%
-        map(~bind_rows(d_0[[.x]], d_1[[.x]])) %>%
-        map(h_test) %>% print
+    h_test2(d_0, d_1, id = Filter) %>% print
 }
