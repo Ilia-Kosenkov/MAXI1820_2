@@ -1,5 +1,6 @@
 average_and_correct <- function(data, corr) {
     data %>% map(fsigma_2) -> avg
+    
     corr %>% group_split(Filter) %>%
         set_names(map_chr(., ~ pull(.x, Filter))) %>%
         map(select, Px, Py, Angle) %>%
@@ -28,14 +29,13 @@ merge_and_enumerate <- function(data) {
 if (get0("ShouldRun", ifnotfound = FALSE)) {
     #data("BandInfo", package = "Dipol2Red")
 
-    average_and_correct(data_2, BandInfo) -> d_0
+    average_and_correct(data_3, BandInfo) -> d_0
+    #average_and_correct(data_3, BandInfo) -> d_1
     average_and_correct_field() -> d_1
-    print(d_0 %>% select(Filter, JD, Px, Py, P, SG, A, SG_A, N, Q))
+
+    print(d_0)
     print(d_1)
 
-    #h_test2(d_0, d_1, id = Filter) %>% print
     h_test2(d_0, d_1, id = Filter) %>% print
-
-
 }
 
