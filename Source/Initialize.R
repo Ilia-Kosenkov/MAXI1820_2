@@ -50,12 +50,9 @@
     library(tictoc)
 
     library(vctrs)
-    library(zeallot)
+    library(primitiveR)
 
 }
-
-cc <- vctrs::vec_c
-len <- vctrs::vec_size
 
 .Initialize <- function() {
     .LoadLibs()

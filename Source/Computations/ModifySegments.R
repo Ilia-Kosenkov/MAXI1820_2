@@ -20,24 +20,22 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE
 
-ModifySegemnts <- function(.data, x, y, scale = 1, shift = 0) {
-    x1 <- enquo(x)
-    x2 <- sym(paste0(quo_name(x1), "_end"))
-    y1 <- enquo(y)
-    y2 <- sym(paste0(quo_name(y1), "_end"))
+ModifySegments <- function(.data, x, y, scale = 1, shift = 0) {
+    x2 <- sym(glue_fmt_chr("{quo_squash(enquo(x))}_end"))
+    y2 <- sym(glue_fmt_chr("{quo_squash(enquo(y))}_end"))
 
     .data %>%
-        AsSegments(!!x1, !!y1) %>%
+        AsSegments({{ x }}, {{ y }}) %>%
         mutate(
-            Mdl__ = sqrt((!!x1 - !!x2) ^ 2 + (!!y1 - !!y2) ^ 2),
-            Angle__ = atan2(!!y1 - !!y2, !!x1 - !!x2),
-            Xc__ = 0.5 * (!!x1 + !!x2),
-            Yc__ = 0.5 * (!!y1 + !!y2)) %>%
+            Mdl__ = sqrt(({{ x }} - {{ x2 }}) ^ 2 + ({{ y }} - {{ y2 }}) ^ 2),
+            Angle__ = atan2({{ y }} - {{ y2 }}, {{ x }} - {{ x2 }}),
+            Xc__ = 0.5 * ({{ x }} + {{ x2 }}),
+            Yc__ = 0.5 * ({{ y }} + {{ y2 }})) %>%
         mutate(Mdl__ = scale * (Mdl__ + shift)) %>%
         mutate(
-            !!quo_name(x1) := Xc__ + 0.5 * Mdl__ * cos(Angle__),
-            !!quo_name(x2) := Xc__ - 0.5 * Mdl__ * cos(Angle__),
-            !!quo_name(y1) := Yc__ + 0.5 * Mdl__ * sin(Angle__),
-            !!quo_name(y2) := Yc__ - 0.5 * Mdl__ * sin(Angle__)) %>%
+            {{ x }} := Xc__ + 0.5 * Mdl__ * cos(Angle__),
+            {{ x2 }} := Xc__ - 0.5 * Mdl__ * cos(Angle__),
+            {{ y }} := Yc__ + 0.5 * Mdl__ * sin(Angle__),
+            {{ y2 }} := Yc__ - 0.5 * Mdl__ * sin(Angle__)) %>%
         select(-Xc__, -Yc__, -Mdl__, -Angle__)
 }

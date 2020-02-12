@@ -20,6 +20,10 @@
 # TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
 # OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+sym_fmt <- function(..., .envir = parent.frame()) {
+    sym(glue_fmt_chr(..., .envir = .envir))
+}
+
 PlotQU <- function(data,
         q, u, qmin, qmax, umin, umax,
         group,
@@ -56,9 +60,19 @@ PlotQU <- function(data,
 
     arrow_data <- data %>%
         select(!!q, !!u, !!group) %>%
+        #mutate("{{q}}_arr" := !!q, "{{u}}_arr" := !!u) %>%
         group_split({{ group }}) %>%
-        map(ModifySegemnts, x = !!q, y = !!u, shift = subtr) %>%
+        map(ModifySegments, x = !!q, y = !!u, shift = subtr) %>%
+        #map(ModifySegments,
+            #x = !!sym(glue_fmt_chr("{q}_arr")),
+            #y = !!sym(glue_fmt_chr("{u}_arr")),
+            #shift = subtr, scale = 0.2) %>%
         bind_rows %>%
+        #mutate(
+            #"{{q}}_arr" := !!sym_fmt("{q}_arr") - (!!sym_fmt("{q}_arr_end") - !!sym_fmt("{q}_end")),
+            #"{{q}}_arr_end" := !!sym_fmt("{q}_end"),
+            #"{{u}}_arr_end" := !!sym_fmt("{u}_end")
+            #) %>%
         mutate(!!quo_squash(group) := as_factor(!!group))
 
     p <- ggplot_sci(data, aes(
@@ -67,7 +81,7 @@ PlotQU <- function(data,
         ymin = !!umin, ymax = !!umax,
         col = !!group,
         fill = !!group,
-        shape = !! shape_group))
+        shape = !!group))
 
     xrng <- GetRange(
         data,
@@ -90,7 +104,7 @@ PlotQU <- function(data,
                 aes(x = x, xend = xend, y = y, yend = yend),
                 tibble(
                     x = cc(-Inf, 0), xend = cc(Inf, 0),
-                    y = cc(0, -Inf), yend = cc(0, Inf)),
+                    y = cc(0, - Inf), yend = cc(0, Inf)),
                 inherit.aes = FALSE,
                 alpha = Style_AlphaBackground, size = Style_LineSize)
 
@@ -108,31 +122,34 @@ PlotQU <- function(data,
                     inherit.aes = FALSE,
                     height = 0.01,
                     size = 1)
-    }
+        }
     p <- p +
         geom_errorbarh(size = Style_ErrorBarSize, height = 0) +
         geom_errorbar(size = Style_ErrorBarSize, width = 0) +
         geom_point(size = Style_SymbolSize) +
-        ### Text labels
-        geom_text(
+    ### Text labels
+    geom_text(
             aes(x = !!q + labs_offset_1 * 0.02,
                 y = !!u + labs_offset_2 * 0.02,
                 label = !!shape_group),
+    # This triggers device creation
             size = grid::convertX(grid::unit(Style_LabelFontSz, "pt"), "mm", TRUE),
             col = "#000000",
             data = filter(data, Band == "B")) +
-        ###
-        scale_color_manual(
+    ###
+    scale_color_manual(
             limits = Style_GroupsBands,
-            values = Style_GroupColorsBands,
+            values = vec_repeat("#000000", vec_size(Style_GroupsBands)),
+            #values = Style_GroupColorsBands,
             guide = FALSE) +
         scale_fill_manual(
             limits = Style_GroupsBands,
-            values = Style_GroupColorsBands,
+            values = vec_repeat("#000000", vec_size(Style_GroupsBands)),
+            #values =  Style_GroupColorsBands,
             guide = FALSE) +
         scale_shape_manual(
-            #limits = Style_GroupsBands,
-            limits = Style_GroupsCombined,
+            limits = Style_GroupsBands,
+            #limits = Style_GroupsCombined,
             values = Style_GC_Shapes,
             guide = FALSE) +
         scale_linetype_manual(
@@ -141,10 +158,14 @@ PlotQU <- function(data,
             guide = FALSE) +
         geom_segment(
             aes(
-                x = !!q, xend = !!q_end,
-                y = !!u, yend = !!u_end,
+                x = !!q,
+                xend = !!q_end,
+                y = !!u,
+                yend = !!u_end,
                 col = !!group,
-                linetype = NULL),
+                #linetype = !!group
+                linetype = NULL
+                ),
             arrow_data,
             inherit.aes = FALSE,
             size = Style_LineSize,
@@ -191,13 +212,7 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         mutate_at(vars(ID, Group, Band), as_factor) %>%
         filter(Group %vec_in% grps)
 
-    plt <- data %>% PlotQU(Px, Py,
-            group = ID,
-            plot_grid = TRUE,                          # Comment for normal plot
-            is_tex = TRUE,
-            grid_cross = field_pol)# %>%
-        #GGPlotPanelLabs("d", hjust = 3, vjust = 2,    # Comment for normal plot
-            #gp = gpar(fontsize = Style_LabelFontSz))  # Comment for normal plot
+  
 
     drPath <- fs::path("Output", "Plots") %T>% (fs::dir_create)
 
@@ -209,6 +224,16 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
         standAlone = TRUE)
 
     tryCatch({
+            plt <- data %>%
+                PlotQU(
+                    Px, Py,
+                    group = ID,
+                    plot_grid = TRUE, # Comment for normal plot
+                    is_tex = TRUE,
+                    grid_cross = field_pol) # %>%
+            #GGPlotPanelLabs("d", hjust = 3, vjust = 2,    # Comment for normal plot
+            #gp = gpar(fontsize = Style_LabelFontSz))  # Comment for normal plot
+
              plt %>% GGPlot2GrobEx %>%
                 GrobMarginSet(
                     labsMar = Style_LabsMarStd,

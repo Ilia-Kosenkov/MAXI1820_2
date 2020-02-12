@@ -32,7 +32,7 @@ purrr::pwalk(tibble::tribble(
     "Style_Groups",            c(0, 2, 3, 1, 4, 6, 7, 5, -1),#c(0:7, -1),
     "Style_GroupsAvgOnly",     c(4, 6, 7, 5, 0, 2, 3, 1, -1),
     "Style_GroupsBands",       c(2:4, -1),
-    "Style_GroupLinesBands",   c(1, 2, 4, 1),
+    "Style_GroupLinesBands",   c(1, 5, 6, 1),
     "Style_GroupColorsBands",  c(brewer.pal(3, "Set1")[c(2, 3, 1)], "#000000"),
     "Style_GroupShapesBands",  c(21, 22, 23, 21),
     "Style_VGapStd",           unit(0.1, "cm"),
