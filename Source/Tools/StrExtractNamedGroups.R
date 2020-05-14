@@ -23,7 +23,7 @@
 StrExtractNamedGroups <- function(string, pattern) {
     grp_names <- str_match_all(pattern, "\\(?<(.*?)>")[[1]][, 2]
 
-    func <- compose(~vec_cast(.x, list()), repair_names, ~tibble(!!!.x), .dir = "forward")
+    func <- compose(~as.list(.x), repair_names, ~tibble(!!!.x), .dir = "forward")
 
     str_match_all(string, pattern) %>%
         map2(string, ~ c(.y, .x)) %>%

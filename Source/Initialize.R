@@ -78,8 +78,8 @@
             "c", "c", "c", "i", "d", "c", "d", "d",
             "d", "c", "c", "c", "c", "c", "c", "c"
         )) %>%
+        map(transmute, JD, Mag = Magnitude, Err = Uncertainty, Filter = as_factor(Band)) %>%
         bind_rows %>%
-        transmute(JD, Mag = Magnitude, Err = Uncertainty, Filter = as_factor(Band)) %>%
         mutate(MJD = JD - 2400000.5) %>%
         filter_range(MJD, cc(58000, 58500))
 }
@@ -96,6 +96,7 @@
         map(set_names, cc("JD", "Ref", "Obs", "Path")) %>%
         map(mutate, MJD = JD - 2400000.5) %>%
         map(arrange, MJD) %>%
+        map(select, - Path) %>%
         set_names(Bands$Band)
 
 }
@@ -122,7 +123,8 @@
         map_chr(~glue("maxi?{.x}[0-9]*\\.csv")) %>%
         map(~files[str_detect(files, .x)]) %>%
         map(~map(.x, ~ (read_csv(.x, col_types = cols())))) %>%
-        map(reduce, bind_rows) %>%
+        map(keep, function(p) vec_size(p) > 0) %>%
+        map(bind_rows) %>% 
         map(set_names, cc("JD", "Ref", "Obs")) %>%
         map(arrange, JD) %>%
         map(mutate, MJD = JD - 2400000.5) %>%

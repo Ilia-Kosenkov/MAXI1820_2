@@ -197,7 +197,6 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
     dt <- ReadAllAvgData(
             pattern = "pol_avg_all_(?<id>[0-9]+)_(?<band>\\w)")[bndOrder]
     field <- AverageFieldStars()[bndOrder]
-
     field_pol <- field %>%
         map(select, Px, Py, SG) %>%
         imap_dfr(~mutate(.x, Filter = as_factor(.y))) %>%
@@ -207,12 +206,13 @@ if (get0("ShouldRun", ifnotfound = FALSE)) {
 
     data <- dt %>%
         SubtractISM(field, .propagate_errors = FALSE) %>% # Comment for normal plot
-        bind_rows %>%
+        bind_rows %>% {. ->> tmp} %>%
         inner_join(select(Bands, Band, ID), by = "Band") %>%
         mutate_at(vars(ID, Group, Band), as_factor) %>%
-        filter(Group %vec_in% grps)
+        filter(vec_in(Group, grps))
+    
 
-  
+  stop()
 
     drPath <- fs::path("Output", "Plots") %T>% (fs::dir_create)
 

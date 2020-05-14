@@ -29,9 +29,9 @@ merge_and_enumerate <- function(data) {
 if (get0("ShouldRun", ifnotfound = FALSE)) {
     #data("BandInfo", package = "Dipol2Red")
 
-    average_and_correct(data_3, BandInfo) -> d_0
-    #average_and_correct(data_3, BandInfo) -> d_1
-    average_and_correct_field() -> d_1
+    average_and_correct(data_2, BandInfo) -> d_0
+    average_and_correct(data_3, BandInfo) -> d_1
+    #average_and_correct_field() -> d_1
 
     print(d_0)
     print(d_1)
